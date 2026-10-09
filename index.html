@@ -1,0 +1,2921 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#0d2634" />
+  <link rel="icon" href="data:," />
+  <title>Pricing Terminal</title>
+  <meta name="application-name" content="Pricing Terminal" />
+  <meta property="og:title" content="Pricing Terminal" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Pricing Terminal" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+    :root {
+      color-scheme: light dark;
+      --canvas: #edf2f3;
+      --panel: #ffffff;
+      --panel-soft: #f5f8f8;
+      --ink: #102b38;
+      --muted: #5c7078;
+      --line: #ccd8dc;
+      --line-strong: #9db0b8;
+      --brand: #0d3c4d;
+      --brand-2: #176275;
+      --brand-wash: #dcebef;
+      --accent: #e59a20;
+      --accent-deep: #8c5510;
+      --positive: #14745f;
+      --danger: #b43b31;
+      --shadow: 0 16px 40px rgba(17, 43, 54, .10);
+      --radius-lg: 24px;
+      --radius-md: 14px;
+      --radius-sm: 9px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --canvas: #08171e;
+        --panel: #10252e;
+        --panel-soft: #142c35;
+        --ink: #edf6f7;
+        --muted: #9cb0b8;
+        --line: #2b4651;
+        --line-strong: #46616b;
+        --brand: #b7e0e7;
+        --brand-2: #74c4d3;
+        --brand-wash: #153946;
+        --accent: #f0ae3f;
+        --accent-deep: #f5c778;
+        --positive: #63cbb1;
+        --danger: #f18c81;
+        --shadow: 0 18px 45px rgba(0, 0, 0, .28);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: "IBM Plex Sans", sans-serif;
+      line-height: 1.45;
+      font-variant-numeric: tabular-nums;
+    }
+    button, input, select { font: inherit; }
+    button, select { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--accent) 75%, transparent);
+      outline-offset: 2px;
+    }
+
+    .shell {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 76px clamp(16px, 3vw, 36px) 56px;
+    }
+
+    #inputs, #economics, #schedule { scroll-margin-top: 76px; }
+
+    .menu-toggle {
+      position: fixed;
+      z-index: 40;
+      top: max(14px, env(safe-area-inset-top));
+      left: max(14px, env(safe-area-inset-left));
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      color: var(--brand);
+      box-shadow: 0 8px 24px rgba(17, 43, 54, .12);
+    }
+    .menu-toggle:hover { border-color: var(--line-strong); }
+    .menu-toggle-lines,
+    .menu-toggle-lines::before,
+    .menu-toggle-lines::after {
+      display: block;
+      width: 19px;
+      height: 2px;
+      border-radius: 2px;
+      background: currentColor;
+    }
+    .menu-toggle-lines { position: relative; }
+    .menu-toggle-lines::before,
+    .menu-toggle-lines::after { content: ""; position: absolute; left: 0; }
+    .menu-toggle-lines::before { top: -6px; }
+    .menu-toggle-lines::after { top: 6px; }
+
+    .menu-backdrop {
+      position: fixed;
+      z-index: 48;
+      inset: 0;
+      background: rgba(3, 17, 23, .48);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .18s ease, visibility .18s ease;
+    }
+    .menu-backdrop.open { opacity: 1; visibility: visible; }
+    .menu-drawer {
+      position: fixed;
+      z-index: 50;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: min(330px, calc(100vw - 42px));
+      padding: calc(20px + env(safe-area-inset-top)) 20px calc(22px + env(safe-area-inset-bottom));
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: 18px 0 48px rgba(3, 17, 23, .2);
+      transform: translateX(-105%);
+      visibility: hidden;
+      transition: transform .22s ease, visibility .22s ease;
+    }
+    .menu-drawer.open { transform: translateX(0); visibility: visible; }
+    .menu-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 17px;
+      border-bottom: 1px solid var(--line);
+    }
+    .menu-head strong { font-size: 1rem; }
+    .menu-close {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--panel-soft);
+      color: var(--ink);
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+    .menu-group { padding: 18px 0; }
+    .menu-group + .menu-group { border-top: 1px solid var(--line); }
+    .menu-label {
+      margin: 0 0 8px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .69rem;
+      font-weight: 600;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+    .menu-link,
+    .menu-action {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 11px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: var(--ink);
+      font-weight: 600;
+      text-align: left;
+      text-decoration: none;
+    }
+    .menu-link::after { content: "→"; color: var(--muted); font-family: "IBM Plex Mono", monospace; }
+    .menu-link.active { background: var(--brand-wash); color: var(--brand); }
+    .menu-link.active::after { color: var(--accent-deep); }
+    .menu-link:hover,
+    .menu-action:hover { background: var(--panel-soft); }
+    .menu-action { color: var(--brand-2); }
+    .menu-action.danger { color: var(--danger); }
+    body.menu-open { overflow: hidden; }
+
+    .intro {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 28px;
+      margin-bottom: 22px;
+    }
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--brand-2);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .76rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .kicker::before {
+      content: "";
+      width: 22px;
+      height: 3px;
+      background: var(--accent);
+    }
+    h1 {
+      margin: 8px 0 5px;
+      max-width: none;
+      font-size: clamp(2.15rem, 4.2vw, 3.2rem);
+      line-height: .98;
+      letter-spacing: -.045em;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .intro p { margin: 0; color: var(--muted); font-size: 1rem; }
+    .assumption {
+      flex: 0 0 auto;
+      padding: 10px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .74rem;
+      background: var(--panel);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(310px, .8fr) minmax(520px, 1.35fr);
+      gap: 20px;
+      align-items: start;
+    }
+    .controls, .results {
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .controls { border-radius: var(--radius-lg); overflow: hidden; }
+    .results { border-radius: var(--radius-lg); padding: clamp(18px, 3vw, 28px); }
+
+    .summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 24px;
+      margin-bottom: 20px;
+      padding: 15px 18px;
+      border-radius: var(--radius-md);
+      background: var(--brand);
+      color: var(--panel);
+    }
+    @media (prefers-color-scheme: dark) {
+      .summary { background: #0b3644; color: #f2fbfc; }
+    }
+    .summary-label {
+      margin: 0 0 3px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .68rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      opacity: .75;
+    }
+    .payment {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      margin: 0;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: clamp(1.55rem, 3vw, 2.05rem);
+      font-weight: 600;
+      letter-spacing: -.045em;
+      line-height: 1.12;
+    }
+    .payment span { font-size: .76rem; letter-spacing: 0; opacity: .72; }
+    .due-now {
+      display: flex;
+      flex-direction: column;
+      align-items: end;
+      gap: 2px;
+      font-size: .76rem;
+      text-align: right;
+    }
+    .due-now[hidden] { display: none; }
+    .due-now span { opacity: .76; }
+    .due-now strong { font-family: "IBM Plex Mono", monospace; font-size: .9rem; }
+
+    .form { padding: 22px 24px 24px; }
+    .field { margin-bottom: 18px; }
+    .field:last-of-type { margin-bottom: 8px; }
+    .subsidized-toggle, .points-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 0;
+      min-height: 48px;
+      padding: 0 13px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--panel-soft);
+      cursor: pointer;
+    }
+    .subsidized-toggle:hover, .points-toggle:hover { border-color: var(--line-strong); }
+    .subsidized-toggle span, .points-toggle span { display: flex; align-items: baseline; gap: 8px; }
+    .subsidized-toggle small, .points-toggle small { color: var(--muted); font-weight: 400; }
+    .subsidized-toggle input, .points-toggle input {
+      width: 20px;
+      min-height: 20px;
+      height: 20px;
+      margin: 0;
+      padding: 0;
+      accent-color: var(--brand-2);
+      flex: 0 0 auto;
+    }
+    .subsidy-section, .points-section {
+      margin-top: 10px;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--brand-wash) 44%, var(--panel));
+    }
+    .subsidy-section .field, .points-section .field { margin-bottom: 14px; }
+    .subsidy-output-grid, .points-output-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .subsidy-output-grid .field, .points-output-grid .field { margin-bottom: 0; min-width: 0; }
+    .subsidy-section input[readonly], .points-section input[readonly] {
+      color: var(--brand);
+      background: var(--panel);
+      cursor: default;
+    }
+    .subsidy-section input:disabled {
+      color: var(--brand);
+      background: var(--panel);
+      opacity: 1;
+      cursor: default;
+    }
+    .subsidy-note, .points-note { margin: 11px 1px 0; color: var(--muted); font-size: .74rem; }
+    label {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 7px;
+      font-weight: 600;
+      font-size: .86rem;
+    }
+    label small { color: var(--muted); font-weight: 400; }
+    .input-wrap { position: relative; }
+    .input-wrap .prefix, .input-wrap .suffix {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .88rem;
+      pointer-events: none;
+    }
+    .input-wrap .prefix { left: 14px; }
+    .input-wrap .suffix { right: 14px; }
+    input, select {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--panel-soft);
+      color: var(--ink);
+    }
+    input {
+      padding: 10px 42px 10px 32px;
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 600;
+    }
+    select {
+      padding: 10px 42px 10px 12px;
+      font-weight: 500;
+    }
+    input:hover, select:hover { border-color: var(--line-strong); }
+    input:focus, select:focus { border-color: var(--brand-2); background: var(--panel); }
+    .term-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .term-btn {
+      min-height: 42px;
+      padding: 8px 5px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      background: var(--panel-soft);
+      font-family: "IBM Plex Mono", monospace;
+      font-weight: 600;
+    }
+    .term-btn[aria-pressed="true"] {
+      border-color: var(--brand);
+      background: var(--brand-wash);
+      color: var(--brand);
+    }
+    .error {
+      display: none;
+      margin: 12px 0 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 10%, transparent);
+      font-size: .83rem;
+    }
+    .error.show { display: block; }
+    details {
+      margin-top: 16px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+      color: var(--muted);
+      font-size: .79rem;
+    }
+    summary { cursor: pointer; color: var(--brand-2); font-weight: 600; }
+    details p { margin: 8px 0 0; }
+
+    .economics-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 17px;
+    }
+    h2, h3 { margin: 0; letter-spacing: -.02em; }
+    h2 { font-size: 1.2rem; }
+    .stamp {
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .7rem;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 24px;
+    }
+    .metric { padding: 17px 14px; border-right: 1px solid var(--line); }
+    .metric:first-child { padding-left: 0; }
+    .metric:last-child { border-right: 0; padding-right: 0; }
+    .metric span {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: .72rem;
+    }
+    .metric strong {
+      display: block;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: clamp(.95rem, 2vw, 1.12rem);
+    }
+    .metric small { display: block; margin-top: 3px; color: var(--muted); font-size: .67rem; }
+    .metric .accent { color: var(--accent-deep); }
+
+    .schedule-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 11px;
+    }
+    .schedule-head p { margin: 3px 0 0; color: var(--muted); font-size: .78rem; }
+    .schedule-actions { display: flex; flex-wrap: wrap; gap: 7px; justify-content: flex-end; }
+    .action {
+      min-height: 38px;
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--brand-2);
+      font-weight: 600;
+      font-size: .77rem;
+    }
+    .action.primary { background: var(--brand); border-color: var(--brand); color: var(--panel); }
+    @media (prefers-color-scheme: dark) {
+      .action.primary { background: var(--brand-2); border-color: var(--brand-2); color: #07161c; }
+    }
+
+    .table-wrap { border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: .72rem; }
+    th {
+      padding: 7px 8px;
+      color: var(--muted);
+      background: var(--panel-soft);
+      font-weight: 600;
+      text-align: right;
+      border-bottom: 1px solid var(--line);
+    }
+    td {
+      padding: 7px 8px;
+      text-align: right;
+      border-bottom: 1px solid var(--line);
+      font-family: "IBM Plex Mono", monospace;
+    }
+    th:first-child, td:first-child { text-align: left; font-family: "IBM Plex Sans", sans-serif; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: var(--panel-soft); }
+    .zero-pay { color: var(--muted); }
+    .balance-zero { color: var(--positive); font-weight: 600; }
+    .more-note { margin: 10px 2px 0; color: var(--muted); font-size: .73rem; text-align: center; }
+    .method {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      margin-top: 18px;
+      padding: 14px 0 0;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .76rem;
+    }
+    .formula {
+      font-family: "IBM Plex Mono", monospace;
+      color: var(--ink);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .view[hidden] { display: none !important; }
+    .rates-intro {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 28px;
+      margin-bottom: 20px;
+    }
+    .rates-intro h1 { margin-bottom: 8px; }
+    .rates-intro p { margin: 0; color: var(--muted); }
+    .snapshot-stamp {
+      display: grid;
+      min-width: 176px;
+      padding: 11px 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--panel);
+      font-family: "IBM Plex Mono", monospace;
+      text-align: right;
+    }
+    .snapshot-stamp span, .snapshot-stamp small { color: var(--muted); font-size: .66rem; }
+    .snapshot-stamp strong { margin: 2px 0; font-size: .86rem; }
+    .refresh-rates {
+      min-height: 34px;
+      margin-top: 9px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-soft);
+      color: var(--brand-2);
+      font-family: "IBM Plex Sans", sans-serif;
+      font-size: .72rem;
+      font-weight: 600;
+    }
+    .refresh-rates:hover { border-color: var(--line-strong); }
+
+    .market-tape {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-bottom: 20px;
+      border-top: 1px solid var(--line-strong);
+      border-bottom: 1px solid var(--line-strong);
+      background: var(--panel);
+    }
+    .tape-item { min-width: 0; padding: 14px 16px; border-right: 1px solid var(--line); }
+    .tape-item:last-child { border-right: 0; }
+    .tape-item span, .tape-item small { display: block; }
+    .tape-item span { margin-bottom: 3px; color: var(--muted); font-size: .72rem; }
+    .tape-item strong { font-family: "IBM Plex Mono", monospace; font-size: 1.25rem; }
+    .tape-item small { margin-top: 2px; font-family: "IBM Plex Mono", monospace; font-size: .68rem; }
+    .move-up { color: var(--danger); }
+    .move-down { color: var(--positive); }
+    .move-flat { color: var(--muted); }
+
+    .movement-panel {
+      margin-bottom: 20px;
+      padding: clamp(18px, 3vw, 28px);
+      border-radius: var(--radius-lg);
+      background: var(--brand);
+      color: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    @media (prefers-color-scheme: dark) {
+      .movement-panel { background: #0b3644; color: #f2fbfc; }
+    }
+    .movement-head, .section-head, .chart-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 18px;
+    }
+    .movement-head { padding-bottom: 14px; border-bottom: 1px solid color-mix(in srgb, currentColor 22%, transparent); }
+    .movement-head p { margin: 4px 0 0; color: inherit; opacity: .72; font-size: .76rem; }
+    .movement-tag {
+      flex: 0 0 auto;
+      padding: 5px 8px;
+      border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+      border-radius: 999px;
+      color: var(--accent);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .67rem;
+      font-weight: 600;
+    }
+    .movement-lede { max-width: 900px; margin: 18px 0; font-size: clamp(1rem, 2.2vw, 1.18rem); line-height: 1.58; }
+    .movement-points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .movement-points span { padding-top: 10px; border-top: 1px solid color-mix(in srgb, currentColor 18%, transparent); font-size: .75rem; opacity: .86; }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      align-items: start;
+      margin-bottom: 20px;
+    }
+    .chart-panel {
+      min-width: 0;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .chart-head { margin-bottom: 8px; }
+    .chart-label {
+      display: block;
+      margin-bottom: 2px;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .65rem;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .chart-value { flex: 0 0 auto; text-align: right; }
+    .chart-value strong, .chart-value span { display: block; font-family: "IBM Plex Mono", monospace; }
+    .chart-value strong { font-size: 1.22rem; }
+    .chart-value span { color: var(--muted); font-size: .65rem; }
+    .line-chart { display: block; width: 100%; height: auto; min-height: 210px; overflow: visible; }
+    .chart-grid-line { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .chart-axis-label { fill: var(--muted); font-family: "IBM Plex Mono", monospace; font-size: 10px; }
+    .chart-path { fill: none; stroke: var(--brand-2); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+    .chart-area { fill: color-mix(in srgb, var(--brand-2) 12%, transparent); }
+    .chart-dot { fill: var(--panel); stroke: var(--brand-2); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+    .chart-dot.latest { fill: var(--accent); stroke: var(--accent-deep); }
+    .chart-source { display: flex; justify-content: space-between; gap: 14px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: .69rem; }
+    .chart-source a, .source-links a, .release-item > a { color: var(--brand-2); font-weight: 600; text-decoration: none; }
+    .chart-source a:hover, .source-links a:hover, .release-item > a:hover { text-decoration: underline; }
+    .data-note { min-height: 43px; margin: 4px 0 10px; color: var(--muted); font-size: .73rem; }
+    .data-note strong { color: var(--ink); }
+
+    .release-section {
+      padding: clamp(18px, 3vw, 28px);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .section-head { margin-bottom: 14px; }
+    .section-head p { margin: 3px 0 0; color: var(--muted); font-size: .78rem; }
+    .section-head > span { color: var(--muted); font-family: "IBM Plex Mono", monospace; font-size: .68rem; }
+    .release-list { border-top: 1px solid var(--line-strong); }
+    .release-item {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: start;
+      padding: 17px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .release-item:last-child { border-bottom: 0; padding-bottom: 0; }
+    .release-item time { display: grid; color: var(--muted); font-family: "IBM Plex Mono", monospace; font-size: .69rem; }
+    .release-item time b { color: var(--ink); font-size: .78rem; }
+    .release-item h3 { font-size: .93rem; }
+    .release-item p { margin: 4px 0 0; color: var(--muted); font-size: .78rem; }
+    .release-item > a { align-self: center; padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; font-size: .68rem; }
+    .rates-footer { display: flex; justify-content: space-between; gap: 20px; align-items: start; padding: 18px 2px 0; color: var(--muted); font-size: .7rem; }
+    .rates-footer p { max-width: 760px; margin: 0; }
+    .source-links { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .factor-intro {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 28px;
+      margin-bottom: 20px;
+    }
+    .factor-intro p { max-width: 690px; margin: 0; color: var(--muted); }
+    .factor-legend {
+      flex: 0 0 auto;
+      padding: 10px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--panel);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .7rem;
+    }
+    .factor-layout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      align-items: start;
+    }
+    .factor-panel {
+      min-width: 0;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .factor-panel.input-panel {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      border-top: 4px solid var(--accent);
+    }
+    .factor-panel.zero-down-panel { grid-column: 2; grid-row: 1; }
+    .factor-panel.one-down-panel { grid-column: 2; grid-row: 2; }
+    .factor-panel.two-down-panel { grid-column: 1; grid-row: 3; }
+    .factor-panel.defer-two-panel { grid-column: 2; grid-row: 3; }
+    .factor-panel.defer-three-panel { grid-column: 1; grid-row: 4; }
+    .factor-panel.defer-four-panel { grid-column: 2; grid-row: 4; }
+    .factor-panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: baseline;
+      margin-bottom: 13px;
+    }
+    .factor-panel-head h2 { font-size: 1rem; }
+    .factor-panel-head span { color: var(--muted); font-family: "IBM Plex Mono", monospace; font-size: .65rem; }
+    .factor-term-selector {
+      min-width: 0;
+      margin: 0 0 16px;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--panel-soft);
+    }
+    .factor-term-selector legend {
+      padding: 0 5px;
+      color: var(--ink);
+      font-size: .78rem;
+      font-weight: 600;
+    }
+    .factor-term-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .factor-term-option {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 6px;
+      min-height: 34px;
+      margin: 0;
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .7rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .factor-term-option:hover { border-color: var(--line-strong); }
+    .factor-term-option:has(input:checked) {
+      border-color: var(--brand-2);
+      background: var(--brand-wash);
+      color: var(--brand);
+    }
+    .factor-term-option:has(input:disabled) { cursor: not-allowed; opacity: .72; }
+    .factor-term-option input {
+      width: 16px;
+      min-height: 16px;
+      height: 16px;
+      margin: 0;
+      padding: 0;
+      accent-color: var(--brand-2);
+    }
+    .factor-term-note {
+      margin: 8px 1px 0;
+      color: var(--muted);
+      font-size: .67rem;
+    }
+    .factor-term-note.is-alert { color: var(--danger); }
+    .factor-contract-control {
+      display: grid;
+      grid-template-columns: auto minmax(180px, 260px);
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 0 16px;
+    }
+    .factor-contract-control label { margin: 0; font-size: .78rem; }
+    .factor-contract-control select { min-height: 40px; font-size: .78rem; }
+    .factor-residual-row th { color: var(--brand) !important; }
+    .factor-residual-input {
+      min-height: 34px;
+      padding: 6px 22px 6px 5px;
+      border-radius: 7px;
+      font-size: .72rem;
+      text-align: right;
+    }
+    .factor-residual-wrap { position: relative; }
+    .factor-residual-wrap::after {
+      content: "%";
+      position: absolute;
+      top: 50%;
+      right: 7px;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: .67rem;
+      pointer-events: none;
+    }
+    .factor-matrix { width: 100%; table-layout: fixed; font-size: .72rem; }
+    .factor-matrix th,
+    .factor-matrix td { padding: 7px 6px; }
+    .factor-matrix th:first-child,
+    .factor-matrix td:first-child { width: 86px; }
+    .factor-matrix tbody th {
+      color: var(--ink);
+      background: transparent;
+      border-bottom: 1px solid var(--line);
+      font-family: "IBM Plex Sans", sans-serif;
+      font-weight: 600;
+      text-align: left;
+    }
+    .factor-matrix tbody tr:last-child th { border-bottom: 0; }
+    .factor-matrix td { white-space: nowrap; }
+    .factor-rate-input {
+      min-height: 34px;
+      padding: 6px 5px;
+      border-radius: 7px;
+      font-size: .72rem;
+      text-align: right;
+    }
+    .factor-grid-input.is-selected {
+      border-color: var(--brand-2);
+      background: var(--brand-wash);
+    }
+    .factor-grid-input.is-selection-edge {
+      box-shadow: inset 0 0 0 1px var(--brand-2);
+    }
+    .factor-panel-tools {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 9px;
+    }
+    .factor-bucket-stepper {
+      display: inline-grid;
+      grid-template-columns: 30px auto 30px;
+      align-items: center;
+      min-height: 30px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      overflow: hidden;
+      background: var(--panel-soft);
+    }
+    .factor-bucket-button {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      min-height: 30px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--brand-2);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1;
+    }
+    .factor-bucket-button:first-child { border-right: 1px solid var(--line); }
+    .factor-bucket-button:last-child { border-left: 1px solid var(--line); }
+    .factor-bucket-button:hover:not(:disabled) { background: var(--brand-wash); }
+    .factor-bucket-button:disabled { color: var(--muted); opacity: .38; cursor: not-allowed; }
+    .factor-bucket-count {
+      min-width: 70px;
+      padding: 0 7px;
+      color: var(--ink) !important;
+      font-family: "IBM Plex Sans", sans-serif !important;
+      font-size: .68rem !important;
+      font-weight: 600;
+      text-align: center;
+    }
+    .factor-copy-button {
+      min-height: 30px;
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--panel-soft);
+      color: var(--brand-2);
+      font-family: "IBM Plex Sans", sans-serif;
+      font-size: .68rem;
+      font-weight: 600;
+    }
+    .factor-copy-button:hover { border-color: var(--line-strong); }
+    .factor-output {
+      color: var(--brand);
+      font-weight: 600;
+      cursor: cell;
+      user-select: none;
+    }
+    .factor-output.is-selected {
+      background: var(--brand-wash);
+    }
+    .factor-output.is-selection-edge {
+      box-shadow: inset 0 0 0 1px var(--brand-2);
+    }
+    .factor-output:focus-visible {
+      position: relative;
+      z-index: 1;
+      outline: 3px solid color-mix(in srgb, var(--accent) 75%, transparent);
+      outline-offset: -1px;
+    }
+    .factor-note {
+      margin: 18px 2px 0;
+      color: var(--muted);
+      font-size: .74rem;
+    }
+    .factor-error {
+      display: none;
+      margin: 16px 0 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 10%, transparent);
+      font-size: .83rem;
+    }
+    .factor-error.show { display: block; }
+
+    .solver-intro {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 28px;
+      margin-bottom: 20px;
+    }
+    .solver-intro p { max-width: 700px; margin: 0; color: var(--muted); }
+    .solver-mode {
+      flex: 0 0 auto;
+      margin: 0;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--panel);
+    }
+    .solver-mode-options { display: flex; gap: 4px; }
+    .solver-mode-option {
+      position: relative;
+      display: grid;
+      min-height: 42px;
+      margin: 0;
+      padding: 9px 13px;
+      place-items: center;
+      border-radius: 7px;
+      color: var(--muted);
+      font-size: .76rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .solver-mode-option {
+      border: 0;
+      background: transparent;
+    }
+    .solver-mode-option[aria-pressed="true"] { background: var(--brand-wash); color: var(--brand); }
+    .solver-panel {
+      min-width: 0;
+      padding: clamp(18px, 3vw, 26px);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+    .solver-panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .solver-panel-head p { margin: 3px 0 0; color: var(--muted); font-size: .75rem; }
+    .solver-grid-head,
+    .solver-row {
+      display: grid;
+      grid-template-columns: 58px minmax(96px, .9fr) minmax(122px, 1.12fr) minmax(60px, .58fr) minmax(60px, .58fr) minmax(60px, .58fr) minmax(82px, .76fr) minmax(82px, .76fr) minmax(88px, .8fr);
+      gap: 9px;
+      align-items: end;
+    }
+    .solver-grid-head {
+      padding: 0 10px 7px;
+      color: var(--muted);
+      font-size: .67rem;
+      font-weight: 600;
+    }
+    .solver-row {
+      padding: 12px 10px;
+      border-top: 1px solid var(--line);
+    }
+    .solver-row:nth-child(even) { background: color-mix(in srgb, var(--panel-soft) 55%, transparent); }
+    .solver-option-label {
+      align-self: center;
+      color: var(--ink);
+      font-weight: 700;
+      font-size: .78rem;
+    }
+    .solver-cell { min-width: 0; }
+    .solver-cell-label {
+      display: none;
+      margin: 0 0 5px;
+      color: var(--muted);
+      font-size: .66rem;
+      font-weight: 600;
+    }
+    .solver-cell input,
+    .solver-cell select { min-height: 42px; font-size: .75rem; }
+    .solver-cell input { padding: 8px 29px 8px 9px; }
+    .solver-cell select { padding: 8px 29px 8px 9px; }
+    .solver-cell .suffix { right: 9px; font-size: .73rem; }
+    .solver-output input[readonly] {
+      border-color: color-mix(in srgb, var(--brand-2) 38%, var(--line));
+      background: var(--brand-wash);
+      color: var(--brand);
+      cursor: default;
+    }
+    .solver-residual.is-unavailable { opacity: .46; }
+    .solver-residual input:disabled { cursor: not-allowed; }
+    .solver-error {
+      display: none;
+      margin: 14px 0 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 10%, transparent);
+      font-size: .8rem;
+    }
+    .solver-error.show { display: block; }
+    .solver-note { margin: 15px 2px 0; color: var(--muted); font-size: .73rem; }
+
+    @media (max-width: 860px) {
+      .shell { padding-top: 72px; }
+      .market-tape { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tape-item:nth-child(2) { border-right: 0; }
+      .tape-item:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .movement-points { grid-template-columns: 1fr; gap: 8px; }
+      .chart-grid { grid-template-columns: 1fr; }
+      .workspace { grid-template-columns: 1fr; }
+      .results { padding-top: 22px; }
+      .factor-layout { grid-template-columns: 1fr; }
+      #rateFactorView .factor-panel { grid-column: auto; grid-row: auto; }
+      .solver-intro { align-items: flex-start; }
+      .solver-grid-head { display: none; }
+      .solver-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .solver-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        gap: 11px 9px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: var(--panel-soft);
+      }
+      .solver-row:nth-child(even) { background: var(--panel-soft); }
+      .solver-option-label { grid-column: 1 / -1; padding-bottom: 7px; border-bottom: 1px solid var(--line); }
+      .solver-cell-label { display: block; }
+      .solver-cell-contract,
+      .solver-cell-timing { grid-column: span 2; }
+    }
+
+    @media (max-width: 620px) {
+      .shell { padding: 72px 12px 40px; }
+      .intro { display: block; margin: 0 4px 16px; }
+      h1 { font-size: clamp(1.55rem, 8vw, 3rem); max-width: none; }
+      .intro p { font-size: .9rem; max-width: 390px; }
+      .assumption { display: none; }
+      .controls { border-radius: 19px; }
+      .summary { padding: 14px 15px; gap: 14px; }
+      .payment { font-size: clamp(1.45rem, 8vw, 1.9rem); }
+      .form { padding: 20px; }
+      .results { border-radius: 19px; padding: 20px 14px; }
+      .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .metric { padding: 14px 10px; }
+      .metric:first-child { padding-left: 0; }
+      .metric:last-child { padding-right: 0; }
+      .metric strong { font-size: clamp(.82rem, 3.4vw, .98rem); }
+      .schedule-head { align-items: flex-start; flex-direction: column; }
+      .schedule-actions { justify-content: flex-start; width: 100%; }
+      .action { flex: 1; }
+      .table-wrap { border: 0; overflow: visible; }
+      table, tbody { display: block; }
+      thead { display: none; }
+      tbody { display: grid; gap: 6px; }
+      tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 10px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--panel-soft);
+      }
+      td, td:first-child {
+        display: block;
+        padding: 0;
+        border: 0;
+        text-align: right;
+        font-family: "IBM Plex Mono", monospace;
+      }
+      td::before {
+        content: attr(data-label);
+        display: block;
+        color: var(--muted);
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: .61rem;
+        font-weight: 500;
+      }
+      td:first-child { text-align: left; grid-column: 1 / -1; border-bottom: 1px solid var(--line); padding-bottom: 5px; font-weight: 600; }
+      td:first-child::before { display: none; }
+      .method { grid-template-columns: 1fr; }
+      .formula { text-align: left; white-space: normal; }
+      .rates-intro { display: block; margin: 0 4px 16px; }
+      .rates-intro p { max-width: 320px; font-size: .86rem; }
+      .snapshot-stamp { margin-top: 13px; width: 100%; text-align: left; }
+      .market-tape { margin-left: 2px; margin-right: 2px; }
+      .tape-item { padding: 12px; }
+      .tape-item strong { font-size: 1.05rem; }
+      .movement-panel, .chart-panel, .release-section { border-radius: 19px; }
+      .movement-head { display: block; }
+      .movement-tag { display: inline-block; margin-top: 10px; }
+      .chart-panel { padding: 18px 14px 14px; }
+      .line-chart { min-height: 190px; }
+      .release-item { grid-template-columns: 68px minmax(0, 1fr); gap: 10px; }
+      .release-item > a { grid-column: 2; justify-self: start; }
+      .rates-footer { display: block; padding-left: 4px; padding-right: 4px; }
+      .source-links { justify-content: flex-start; margin-top: 10px; }
+      .factor-intro { display: block; margin: 0 4px 16px; }
+      .factor-intro p { font-size: .86rem; }
+      .factor-legend { display: inline-block; margin-top: 13px; }
+      .factor-layout { gap: 14px; }
+      .factor-panel { padding: 17px 14px; border-radius: 19px; }
+      .factor-panel-head { display: block; }
+      .factor-panel-tools { justify-content: flex-start; margin-top: 7px; }
+      .factor-panel-head span { display: block; margin-top: 3px; }
+      .factor-term-selector { padding: 11px; }
+      .factor-term-options { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .factor-contract-control { grid-template-columns: 1fr; gap: 7px; }
+      .factor-term-option { justify-content: center; padding-left: 5px; padding-right: 5px; }
+      .factor-matrix,
+      .factor-matrix tbody { display: block; }
+      .factor-matrix thead { display: none; }
+      .factor-matrix tbody { display: grid; gap: 10px; }
+      .factor-matrix tr {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+        gap: 7px;
+        padding: 10px;
+      }
+      .factor-matrix tbody th,
+      .factor-matrix tbody td,
+      .factor-matrix tbody td:first-child {
+        width: auto;
+        padding: 0;
+        border: 0;
+        text-align: right;
+      }
+      .factor-matrix tbody th {
+        grid-column: 1 / -1;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+      }
+      .factor-matrix td::before {
+        content: attr(data-term) " mo";
+        display: block;
+        margin-bottom: 3px;
+        color: var(--muted);
+        font-family: "IBM Plex Sans", sans-serif;
+        font-size: .61rem;
+        font-weight: 500;
+      }
+      .factor-rate-input, .factor-residual-input { min-height: 38px; font-size: .74rem; }
+      .solver-intro { display: block; margin: 0 4px 16px; }
+      .solver-intro p { font-size: .86rem; }
+      .solver-mode { margin-top: 14px; }
+      .solver-mode-options { display: grid; grid-template-columns: 1fr 1fr; }
+      .solver-mode-option { padding-left: 8px; padding-right: 8px; text-align: center; }
+      .solver-panel { padding: 17px 14px; border-radius: 19px; }
+      .solver-panel-head { align-items: flex-start; }
+      .solver-rows { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 380px) {
+      .term-grid { grid-template-columns: repeat(3, 1fr); }
+      .term-btn:last-child { grid-column: auto; }
+      .metrics { display: block; }
+      .metric, .metric:first-child, .metric:nth-child(3) { display: block; padding: 13px 0; border-right: 0; border-bottom: 1px solid var(--line); }
+      .metric:last-child { border-bottom: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    @media print {
+      body { background: white; color: black; }
+      .shell { max-width: none; padding: 0; }
+      .intro, .controls, .schedule-actions, .more-note { display: none !important; }
+      .workspace { display: block; }
+      .results { box-shadow: none; padding: 0; }
+      .table-wrap { overflow: visible; }
+    }
+  </style>
+</head>
+<body>
+  <button type="button" class="menu-toggle" id="menuToggle" aria-label="Open menu" aria-controls="quickMenu" aria-expanded="false">
+    <span class="menu-toggle-lines" aria-hidden="true"></span>
+  </button>
+  <div class="menu-backdrop" id="menuBackdrop" aria-hidden="true"></div>
+  <aside class="menu-drawer" id="quickMenu" aria-label="Quick menu" aria-hidden="true">
+    <div class="menu-head">
+      <strong>Quick menu</strong>
+      <button type="button" class="menu-close" id="menuClose" aria-label="Close menu">×</button>
+    </div>
+    <nav class="menu-group" aria-label="Views">
+      <p class="menu-label">Views</p>
+      <a class="menu-link view-link active" href="#financial-calculator" data-view="calculatorView">Financial Calculator</a>
+      <a class="menu-link view-link" href="#rate-factor-station" data-view="rateFactorView">Rate Factor Station</a>
+      <a class="menu-link view-link" href="#subsidy-solver" data-view="subsidySolverView">Subsidy Solver</a>
+    </nav>
+  </aside>
+
+  <main class="shell">
+    <section class="view active" id="calculatorView" aria-labelledby="calculatorTitle">
+    <header class="intro">
+      <div>
+        <div class="kicker">Monthly compounding</div>
+        <h1 id="calculatorTitle">Financial Calculator</h1>
+      </div>
+      <div class="assumption" id="futureValueAssumption">FV = $0.00</div>
+    </header>
+
+    <div class="workspace">
+      <section class="controls" id="inputs" aria-label="Contract inputs">
+        <form class="form" onsubmit="return false;">
+          <div class="field">
+            <label for="contractType">Contract type</label>
+            <select id="contractType">
+              <option value="conditional">Conditional Sale</option>
+              <option value="lease">True Lease</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="principal">Principal <small>Amount financed</small></label>
+            <div class="input-wrap">
+              <span class="prefix">$</span>
+              <input id="principal" type="number" inputmode="decimal" min="0.01" step="100" value="25000" aria-describedby="inputError" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="rate">Yield <small>Annual</small></label>
+            <div class="input-wrap">
+              <input id="rate" type="number" inputmode="decimal" min="0" max="100" step="0.01" value="8.50" aria-describedby="rateHelp inputError" />
+              <span class="suffix">%</span>
+            </div>
+          </div>
+
+          <div class="field" id="residualField" hidden>
+            <label for="residual">Residual <small>Future value</small></label>
+            <div class="input-wrap">
+              <input id="residual" type="number" inputmode="decimal" min="0" max="100" step="0.01" value="20.00" aria-describedby="inputError" />
+              <span class="suffix">%</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label id="termLabel">Term <small id="termValue">36 months</small></label>
+            <div class="term-grid" role="group" aria-labelledby="termLabel">
+              <button type="button" class="term-btn" data-term="6" aria-pressed="false">6</button>
+              <button type="button" class="term-btn" data-term="12" aria-pressed="false">12</button>
+              <button type="button" class="term-btn" data-term="24" aria-pressed="false">24</button>
+              <button type="button" class="term-btn" data-term="36" aria-pressed="true">36</button>
+              <button type="button" class="term-btn" data-term="48" aria-pressed="false">48</button>
+              <button type="button" class="term-btn" data-term="60" aria-pressed="false">60</button>
+              <button type="button" class="term-btn" data-term="72" aria-pressed="false">72</button>
+              <button type="button" class="term-btn" data-term="84" aria-pressed="false">84</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="timing">Payment timing <small>Down or deferred</small></label>
+            <select id="timing">
+              <option value="ordinary">No down payment</option>
+              <option value="down1">1 down payment</option>
+              <option value="down2">2 down payments</option>
+              <option value="defer2">2 months / periods deferred</option>
+              <option value="defer3">3 months / periods deferred</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label class="subsidized-toggle" for="subsidized">
+              <span>Subsidized <small>Rate buydown</small></span>
+              <input id="subsidized" type="checkbox" aria-controls="subsidySection" aria-expanded="false" />
+            </label>
+            <div class="subsidy-section" id="subsidySection" hidden>
+              <div class="field">
+                <label for="endUserRate">End User Rate % <small>Annual nominal</small></label>
+                <div class="input-wrap">
+                  <input id="endUserRate" type="number" inputmode="decimal" min="0" max="100" step="0.01" value="8.50" aria-describedby="subsidyNote inputError" />
+                  <span class="suffix">%</span>
+                </div>
+              </div>
+              <div class="subsidy-output-grid">
+                <div class="field">
+                  <label for="subsidyPct">Subsidy %</label>
+                  <div class="input-wrap">
+                    <input id="subsidyPct" type="text" value="0.00" readonly aria-readonly="true" />
+                    <span class="suffix">%</span>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="subsidyAmount">Subsidy $</label>
+                  <div class="input-wrap">
+                    <span class="prefix">$</span>
+                    <input id="subsidyAmount" type="text" value="0.00" readonly aria-readonly="true" />
+                  </div>
+                </div>
+              </div>
+              <p class="subsidy-note" id="subsidyNote">The principal reduction required for the scheduled cash flows to yield the interest rate.</p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="points-toggle" for="points">
+              <span>Points <small>Commission</small></span>
+              <input id="points" type="checkbox" aria-controls="pointsSection" aria-expanded="false" />
+            </label>
+            <div class="points-section" id="pointsSection" hidden>
+              <div class="field">
+                <label for="pointsPct">Points % <small>Of financed amount</small></label>
+                <div class="input-wrap">
+                  <input id="pointsPct" type="number" inputmode="decimal" min="0" max="100" step="0.01" value="0.00" aria-describedby="pointsNote inputError" />
+                  <span class="suffix">%</span>
+                </div>
+              </div>
+              <div class="points-output-grid">
+                <div class="field">
+                  <label for="pointsEndUserRate">End User Rate %</label>
+                  <div class="input-wrap">
+                    <input id="pointsEndUserRate" type="text" value="8.5000" readonly aria-readonly="true" />
+                    <span class="suffix">%</span>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="pointsAmount">Points $</label>
+                  <div class="input-wrap">
+                    <span class="prefix">$</span>
+                    <input id="pointsAmount" type="text" value="0.00" readonly aria-readonly="true" />
+                  </div>
+                </div>
+              </div>
+              <p class="points-note" id="pointsNote">Points increase the present value of the scheduled cash flows; the End User Rate is the corresponding annual nominal rate.</p>
+            </div>
+          </div>
+
+          <div class="error" id="inputError" role="alert">Enter a principal above $0 and an annual rate from 0% to 100%.</div>
+
+          <details>
+            <summary>Timing convention</summary>
+            <p>Term is the total number of payments. Down payments are installment-sized amounts paid at signing; the remaining installments begin one month later. A deferral accrues interest for the selected full months, then all payments begin the following month.</p>
+          </details>
+        </form>
+      </section>
+
+      <section class="results" id="economics" aria-label="Contract economics">
+        <div class="economics-head">
+          <h2>Total contract economics</h2>
+          <div class="stamp" id="periodRate">0.7083% / month</div>
+        </div>
+
+        <div class="summary" aria-live="polite">
+          <div>
+            <p class="summary-label">Scheduled payment</p>
+            <p class="payment" id="payment">$0.00 <span>/ payment</span></p>
+          </div>
+          <div class="due-now" id="dueNowSummary" hidden>
+            <span id="dueNowLabel">Due at signing</span>
+            <strong id="dueNow">$0.00</strong>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <span>Total of payments</span>
+            <strong id="totalPaid">$0.00</strong>
+            <small id="paymentCount">36 payments</small>
+          </div>
+          <div class="metric">
+            <span>Finance charge</span>
+            <strong class="accent" id="financeCharge">$0.00</strong>
+            <small id="financeHelp">total paid − principal</small>
+          </div>
+          <div class="metric">
+            <span>Rate Factor</span>
+            <strong id="rateFactor">0.000000</strong>
+            <small>payment ÷ financed amount</small>
+          </div>
+        </div>
+
+        <div class="schedule-head" id="schedule">
+          <div>
+            <h3>Amortization schedule</h3>
+            <p id="scheduleNote">First 12 of 36 rows</p>
+          </div>
+          <div class="schedule-actions">
+            <button type="button" class="action" id="toggleRows">Show all</button>
+            <button type="button" class="action primary" id="downloadCsv">Download CSV</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Period</th>
+                <th scope="col">Payment</th>
+                <th scope="col">Interest</th>
+                <th scope="col">Principal</th>
+                <th scope="col">Balance</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+        <p class="more-note" id="moreNote"></p>
+
+        <div class="method">
+          <span id="methodText">Rate is divided by 12; payments are discounted monthly to a $0 future value.</span>
+          <span class="formula" id="formula">PV = PMT × Σ(1 + r/12)<sup>−t</sup></span>
+        </div>
+      </section>
+    </div>
+    </section>
+
+    <section class="view" id="rateMarketsView" aria-labelledby="ratesTitle" hidden>
+      <header class="rates-intro">
+        <div>
+          <div class="kicker">U.S. rates snapshot</div>
+          <h1 id="ratesTitle">Rate Markets</h1>
+          <p>Benchmarks, curve shape, and the releases moving duration.</p>
+        </div>
+        <div class="snapshot-stamp">
+          <span>Official close</span>
+          <strong>Oct 6, 2026</strong>
+          <small>Oct 7 market recap</small>
+          <button class="refresh-rates" id="refreshRates" type="button" title="Reload this published snapshot">Refresh page</button>
+        </div>
+      </header>
+
+      <div class="market-tape" aria-label="Latest rate benchmarks">
+        <article class="tape-item">
+          <span>2Y Treasury</span>
+          <strong id="twoYearLatest">—</strong>
+          <small id="twoYearMove">—</small>
+        </article>
+        <article class="tape-item">
+          <span>10Y Treasury</span>
+          <strong id="tenYearLatest">—</strong>
+          <small id="tenYearMove">—</small>
+        </article>
+        <article class="tape-item">
+          <span>30Y Treasury</span>
+          <strong id="thirtyYearLatest">—</strong>
+          <small id="thirtyYearMove">—</small>
+        </article>
+        <article class="tape-item">
+          <span>2s10s curve</span>
+          <strong id="curveSlope">—</strong>
+          <small id="curveMove">—</small>
+        </article>
+      </div>
+
+      <section class="movement-panel" aria-labelledby="movementTitle">
+        <div class="movement-head">
+          <div>
+            <h2 id="movementTitle">Daily movement</h2>
+            <p>Oct 7 market report · official H.15 closes remain through Oct 6</p>
+          </div>
+          <span class="movement-tag">Auction relief</span>
+        </div>
+        <p class="movement-lede">The 10-year yield touched 5.361%—its highest since 2002—before a strong $39B note auction pulled it back to about 5.276%. The 2-year fell to roughly 4.762%, leaving the curve flatter into the close even as the latest official 2s10s reading remained a positive 48 bp.</p>
+        <div class="movement-points">
+          <span><b>Long end:</b> morning selloff reversed after the auction</span>
+          <span><b>Fed:</b> hawkish September minutes were largely absorbed</span>
+          <span><b>Backdrop:</b> oil, supply, and fiscal-premium concerns kept volatility elevated</span>
+        </div>
+      </section>
+
+      <div class="chart-grid">
+        <article class="chart-panel">
+          <div class="chart-head">
+            <div>
+              <span class="chart-label">Treasury constant maturity</span>
+              <h2>2-year yield</h2>
+            </div>
+            <div class="chart-value"><strong id="twoYearChartValue">—</strong><span id="twoYearWindowMove">—</span></div>
+          </div>
+          <svg class="line-chart" id="twoYearChart" viewBox="0 0 560 230" role="img" aria-label="Two-year Treasury yield over one month"></svg>
+          <div class="chart-source"><span>Sep 8–Oct 6 · 1 month</span><a href="https://fred.stlouisfed.org/series/DGS2" target="_blank" rel="noopener">FRED DGS2</a></div>
+        </article>
+
+        <article class="chart-panel">
+          <div class="chart-head">
+            <div>
+              <span class="chart-label">Treasury constant maturity</span>
+              <h2>10-year yield</h2>
+            </div>
+            <div class="chart-value"><strong id="tenYearChartValue">—</strong><span id="tenYearWindowMove">—</span></div>
+          </div>
+          <svg class="line-chart" id="tenYearChart" viewBox="0 0 560 230" role="img" aria-label="Ten-year Treasury yield over one month"></svg>
+          <div class="chart-source"><span>Sep 8–Oct 6 · 1 month</span><a href="https://fred.stlouisfed.org/series/DGS10" target="_blank" rel="noopener">FRED DGS10</a></div>
+        </article>
+
+        <article class="chart-panel thirty-year-panel">
+          <div class="chart-head">
+            <div>
+              <span class="chart-label">Treasury constant maturity</span>
+              <h2>30-year yield</h2>
+            </div>
+            <div class="chart-value"><strong id="thirtyYearChartValue">—</strong><span id="thirtyYearWindowMove">—</span></div>
+          </div>
+          <svg class="line-chart" id="thirtyYearChart" viewBox="0 0 560 230" role="img" aria-label="Thirty-year Treasury yield over one month"></svg>
+          <div class="chart-source"><span>Sep 8–Oct 6 · 1 month</span><a href="https://fred.stlouisfed.org/series/DGS30" target="_blank" rel="noopener">FRED DGS30</a></div>
+        </article>
+
+        <article class="chart-panel curve-panel">
+          <div class="chart-head">
+            <div>
+              <span class="chart-label">Nominal Treasury curve</span>
+              <h2>Yield curve</h2>
+            </div>
+            <div class="chart-value"><strong id="curveChartValue">—</strong><span>2s10s</span></div>
+          </div>
+          <svg class="line-chart curve-chart" id="yieldCurveChart" viewBox="0 0 560 230" role="img" aria-label="Treasury yield curve by maturity on October 6, 2026"></svg>
+          <p class="data-note">The curve is upward sloping through 20 years, with the 20-year point above the 30-year. The 2s10s slope steepened 1 bp from the prior official close.</p>
+          <div class="chart-source"><span>Oct 6 official close</span><a href="https://www.federalreserve.gov/releases/h15/" target="_blank" rel="noopener">Federal Reserve H.15</a></div>
+        </article>
+      </div>
+
+      <section class="release-section" aria-labelledby="releaseTitle">
+        <div class="section-head">
+          <div>
+            <h2 id="releaseTitle">Recent market-moving releases</h2>
+            <p>What changed the path for policy and term premium.</p>
+          </div>
+          <span>Eastern Time</span>
+        </div>
+        <div class="release-list">
+          <article class="release-item">
+            <time datetime="2026-10-07T14:00:00-04:00"><b>Oct 7</b><span>2:00 PM</span></time>
+            <div><h3>FOMC minutes</h3><p>Most participants saw another rate increase by year-end as likely appropriate. Markets absorbed the hawkish tone with October hike odds still near 20%.</p></div>
+            <a href="https://www.federalreserve.gov/monetarypolicy/fomcpresconf20260916.htm" target="_blank" rel="noopener" aria-label="Federal Reserve September meeting materials">Fed</a>
+          </article>
+          <article class="release-item">
+            <time datetime="2026-10-02T08:30:00-04:00"><b>Oct 2</b><span>8:30 AM</span></time>
+            <div><h3>September payrolls</h3><p>Payrolls rose 29k versus roughly 84–90k expected; unemployment was 4.2%, and the prior two months were revised down by 60k.</p></div>
+            <a href="https://www.bls.gov/news.release/archives/empsit_10022026.htm" target="_blank" rel="noopener" aria-label="BLS September 2026 Employment Situation">BLS</a>
+          </article>
+          <article class="release-item">
+            <time datetime="2026-10-01T10:00:00-04:00"><b>Oct 1</b><span>10:00 AM</span></time>
+            <div><h3>ISM manufacturing</h3><p>The index held at 54.5 versus 55.0 expected, while Prices Paid jumped 6.8 points to 77.9—the strongest inflation signal since March.</p></div>
+            <a href="https://verifiedinvesting.com/blogs/us-economic-metrics/ism-manufacturing-september-2026" target="_blank" rel="noopener" aria-label="September 2026 ISM manufacturing coverage">Source</a>
+          </article>
+          <article class="release-item">
+            <time datetime="2026-09-30T08:30:00-04:00"><b>Sep 30</b><span>8:30 AM</span></time>
+            <div><h3>August PCE inflation</h3><p>Headline PCE printed 3.4% year over year and core 3.0%, both cooler than consensus after BEA’s annual methodology update.</p></div>
+            <a href="https://www.techtimes.com:443/articles/328346/20260930/august-pce-inflation-cooled-34-bea-rewrote-how-it-measures-prices.htm" target="_blank" rel="noopener" aria-label="August 2026 PCE inflation coverage">Source</a>
+          </article>
+        </div>
+      </section>
+
+      <footer class="rates-footer">
+        <p>Snapshot built Oct 7, 2026. Official benchmark data is delayed; Oct 7 values in the movement summary are market-reported, while charts use the latest official Oct 6 close.</p>
+        <div class="source-links">
+          <a href="https://www.wsj.com/livecoverage/stock-market-today-dow-sp-500-nasdaq-10-07-2026" target="_blank" rel="noopener">WSJ market recap</a>
+          <a href="https://www.marketwatch.com/story/options-traders-are-betting-on-a-dramatic-drop-in-interest-rates-141066fb" target="_blank" rel="noopener">MarketWatch</a>
+        </div>
+      </footer>
+    </section>
+
+    <section class="view" id="rateFactorView" aria-labelledby="factorTitle" hidden>
+      <header class="factor-intro">
+        <div>
+          <div class="kicker">Monthly rate matrix</div>
+          <h1 id="factorTitle">Rate Factor Station</h1>
+          <p>Enter an annual nominal rate for each bucket and term. Every timing grid recalculates instantly.</p>
+        </div>
+        <div class="factor-legend">Rate Factor = payment ÷ amount financed</div>
+      </header>
+
+      <div class="factor-layout">
+        <section class="factor-panel input-panel" aria-labelledby="factorInputTitle">
+          <div class="factor-panel-head">
+            <h2 id="factorInputTitle">Inputs</h2>
+            <div class="factor-panel-tools">
+              <span>Annual rate %</span>
+              <div class="factor-bucket-stepper" role="group" aria-label="Bucket count">
+                <button class="factor-bucket-button" id="removeFactorBucket" type="button" aria-label="Remove last bucket">−</button>
+                <span class="factor-bucket-count" id="factorBucketCount" aria-live="polite">4 buckets</span>
+                <button class="factor-bucket-button" id="addFactorBucket" type="button" aria-label="Add bucket">+</button>
+              </div>
+              <button class="factor-copy-button" id="copyFactorGrid" type="button">Copy grid</button>
+            </div>
+          </div>
+          <fieldset class="factor-term-selector" id="factorTermSelector">
+            <legend>Terms shown</legend>
+            <div class="factor-term-options">
+              <label class="factor-term-option"><input type="checkbox" name="factorTerm" value="6">6 mo</label>
+              <label class="factor-term-option"><input type="checkbox" name="factorTerm" value="12" checked>12 mo</label>
+              <label class="factor-term-option"><input type="checkbox" name="factorTerm" value="24" checked>24 mo</label>
+              <label class="factor-term-option"><input type="checkbox" name="factorTerm" value="36" checked>36 mo</label>
+              <label class="factor-term-option"><input type="checkbox" name="factorTerm" value="48" checked>48 mo</label>
+              <label class="factor-term-option"><input type="checkbox" name="factorTerm" value="60" checked>60 mo</label>
+              <label class="factor-term-option"><input type="checkbox" name="factorTerm" value="72" checked>72 mo</label>
+              <label class="factor-term-option"><input type="checkbox" name="factorTerm" value="84">84 mo</label>
+            </div>
+            <p class="factor-term-note" id="factorTermNote" aria-live="polite">Select one or more terms.</p>
+          </fieldset>
+          <div class="factor-contract-control">
+            <label for="factorContractType">Contract type</label>
+            <select id="factorContractType">
+              <option value="conditional">Conditional Sale</option>
+              <option value="lease">True Lease</option>
+            </select>
+          </div>
+          <table class="factor-matrix" aria-describedby="factorClipboardHint">
+            <thead><tr><th scope="col">Bucket</th><th scope="col">12</th><th scope="col">24</th><th scope="col">36</th><th scope="col">48</th><th scope="col">60</th><th scope="col">72</th></tr></thead>
+            <tbody id="factorInputs"></tbody>
+          </table>
+          <p class="factor-note" id="factorClipboardHint">Paste a range from Excel into any cell. Shift-click to select a range, then copy it back as tab-separated values.</p>
+        </section>
+
+        <section class="factor-panel zero-down-panel" aria-labelledby="factorZeroTitle">
+          <div class="factor-panel-head">
+            <h2 id="factorZeroTitle">Rate Factors · 0 Down</h2>
+            <div class="factor-panel-tools"><span>Payments begin month 1</span><button class="factor-copy-button" type="button" data-factor-copy="factorZero">Copy grid</button></div>
+          </div>
+          <table class="factor-matrix" aria-describedby="factorOutputHint"><thead><tr><th scope="col">Bucket</th><th scope="col">12</th><th scope="col">24</th><th scope="col">36</th><th scope="col">48</th><th scope="col">60</th><th scope="col">72</th></tr></thead><tbody id="factorZero"></tbody></table>
+        </section>
+
+        <section class="factor-panel one-down-panel" aria-labelledby="factorOneTitle">
+          <div class="factor-panel-head">
+            <h2 id="factorOneTitle">Rate Factors · 1 Down</h2>
+            <div class="factor-panel-tools"><span>1 payment at signing</span><button class="factor-copy-button" type="button" data-factor-copy="factorOne">Copy grid</button></div>
+          </div>
+          <table class="factor-matrix" aria-describedby="factorOutputHint"><thead><tr><th scope="col">Bucket</th><th scope="col">12</th><th scope="col">24</th><th scope="col">36</th><th scope="col">48</th><th scope="col">60</th><th scope="col">72</th></tr></thead><tbody id="factorOne"></tbody></table>
+        </section>
+
+        <section class="factor-panel two-down-panel" aria-labelledby="factorTwoTitle">
+          <div class="factor-panel-head">
+            <h2 id="factorTwoTitle">Rate Factors · 2 Down</h2>
+            <div class="factor-panel-tools"><span>2 payments at signing</span><button class="factor-copy-button" type="button" data-factor-copy="factorTwo">Copy grid</button></div>
+          </div>
+          <table class="factor-matrix" aria-describedby="factorOutputHint"><thead><tr><th scope="col">Bucket</th><th scope="col">12</th><th scope="col">24</th><th scope="col">36</th><th scope="col">48</th><th scope="col">60</th><th scope="col">72</th></tr></thead><tbody id="factorTwo"></tbody></table>
+        </section>
+
+        <section class="factor-panel defer-two-panel" aria-labelledby="factorDeferTwoTitle">
+          <div class="factor-panel-head">
+            <h2 id="factorDeferTwoTitle">Rate Factors · 2 Periods Deferred</h2>
+            <div class="factor-panel-tools"><span>First payment month 3</span><button class="factor-copy-button" type="button" data-factor-copy="factorDeferTwo">Copy grid</button></div>
+          </div>
+          <table class="factor-matrix" aria-describedby="factorOutputHint"><thead><tr><th scope="col">Bucket</th><th scope="col">12</th><th scope="col">24</th><th scope="col">36</th><th scope="col">48</th><th scope="col">60</th><th scope="col">72</th></tr></thead><tbody id="factorDeferTwo"></tbody></table>
+        </section>
+
+        <section class="factor-panel defer-three-panel" aria-labelledby="factorDeferThreeTitle">
+          <div class="factor-panel-head">
+            <h2 id="factorDeferThreeTitle">Rate Factors · 3 Periods Deferred</h2>
+            <div class="factor-panel-tools"><span>First payment month 4</span><button class="factor-copy-button" type="button" data-factor-copy="factorDeferThree">Copy grid</button></div>
+          </div>
+          <table class="factor-matrix" aria-describedby="factorOutputHint"><thead><tr><th scope="col">Bucket</th><th scope="col">12</th><th scope="col">24</th><th scope="col">36</th><th scope="col">48</th><th scope="col">60</th><th scope="col">72</th></tr></thead><tbody id="factorDeferThree"></tbody></table>
+        </section>
+
+        <section class="factor-panel defer-four-panel" aria-labelledby="factorDeferFourTitle">
+          <div class="factor-panel-head">
+            <h2 id="factorDeferFourTitle">Rate Factors · 4 Periods Deferred</h2>
+            <div class="factor-panel-tools"><span>First payment month 5</span><button class="factor-copy-button" type="button" data-factor-copy="factorDeferFour">Copy grid</button></div>
+          </div>
+          <table class="factor-matrix" aria-describedby="factorOutputHint"><thead><tr><th scope="col">Bucket</th><th scope="col">12</th><th scope="col">24</th><th scope="col">36</th><th scope="col">48</th><th scope="col">60</th><th scope="col">72</th></tr></thead><tbody id="factorDeferFour"></tbody></table>
+        </section>
+      </div>
+      <p class="factor-error" id="factorError" role="alert">Enter annual rates from 0% to 100%.</p>
+      <p class="factor-note" id="factorOutputHint">In any output grid, select a cell, then Shift-click or Shift+Arrow to select a range and copy it as tab-separated values. Active buckets carry through every timing grid; factors use monthly compounding at annual rate ÷ 12. True Lease uses each term’s residual as future value; Conditional Sale uses $0.</p>
+    </section>
+
+    <section class="view" id="subsidySolverView" aria-labelledby="solverTitle" hidden>
+      <header class="solver-intro">
+        <div>
+          <div class="kicker">Multi-option pricing</div>
+          <h1 id="solverTitle">Subsidy Solver</h1>
+          <p>Compare contract structures and solve each option for either the required subsidy or the customer-facing rate.</p>
+        </div>
+        <div class="solver-mode" id="solverMode" role="group" aria-label="Solve for">
+          <div class="solver-mode-options">
+            <button class="solver-mode-option" type="button" data-solver-mode="subsidy" aria-pressed="true">Solve for subsidy</button>
+            <button class="solver-mode-option" type="button" data-solver-mode="rate" aria-pressed="false">Solve for end user rate</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="solver-panel" aria-labelledby="solverOptionsTitle">
+        <div class="solver-panel-head">
+          <div>
+            <h2 id="solverOptionsTitle">Pricing options</h2>
+            <p id="solverModeHelp">Enter the End User Rate; Subsidy is calculated.</p>
+          </div>
+          <div class="factor-bucket-stepper" role="group" aria-label="Pricing option count">
+            <button class="factor-bucket-button" id="removeSolverOption" type="button" aria-label="Remove last option">−</button>
+            <span class="factor-bucket-count" id="solverOptionCount" aria-live="polite">4 options</span>
+            <button class="factor-bucket-button" id="addSolverOption" type="button" aria-label="Add option">+</button>
+          </div>
+        </div>
+        <div class="solver-grid-head" aria-hidden="true">
+          <span>Option</span><span>Contract Type</span><span>Payment Timing</span><span>Term</span><span>Yield</span><span>Residual</span><span>End User Rate</span><span>Subsidy</span><span>Rate Factor</span>
+        </div>
+        <div class="solver-rows" id="solverRows"></div>
+        <p class="solver-error" id="solverError" role="alert"></p>
+        <p class="solver-note">Subsidy is shown as a percentage of amount financed. Rate Factor equals the scheduled payment divided by amount financed and uses monthly compounding at the End User Rate.</p>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var rateData = {
+        treasuries: [
+          { date: "2026-09-08", label: "Sep 8", y2: 4.39, y10: 4.80, y30: 5.25 },
+          { date: "2026-09-09", label: "Sep 9", y2: 4.43, y10: 4.83, y30: 5.28 },
+          { date: "2026-09-10", label: "Sep 10", y2: 4.56, y10: 4.95, y30: 5.37 },
+          { date: "2026-09-11", label: "Sep 11", y2: 4.63, y10: 4.96, y30: 5.35 },
+          { date: "2026-09-14", label: "Sep 14", y2: 4.65, y10: 4.97, y30: 5.34 },
+          { date: "2026-09-15", label: "Sep 15", y2: 4.67, y10: 5.00, y30: 5.36 },
+          { date: "2026-09-16", label: "Sep 16", y2: 4.74, y10: 5.01, y30: 5.35 },
+          { date: "2026-09-17", label: "Sep 17", y2: 4.67, y10: 4.94, y30: 5.29 },
+          { date: "2026-09-18", label: "Sep 18", y2: 4.76, y10: 5.01, y30: 5.34 },
+          { date: "2026-09-21", label: "Sep 21", y2: 4.76, y10: 4.96, y30: 5.29 },
+          { date: "2026-09-22", label: "Sep 22", y2: 4.71, y10: 4.96, y30: 5.29 },
+          { date: "2026-09-23", label: "Sep 23", y2: 4.85, y10: 5.11, y30: 5.40 },
+          { date: "2026-09-24", label: "Sep 24", y2: 4.87, y10: 5.18, y30: 5.47 },
+          { date: "2026-09-25", label: "Sep 25", y2: 4.81, y10: 5.17, y30: 5.49 },
+          { date: "2026-09-28", label: "Sep 28", y2: 4.92, y10: 5.24, y30: 5.56 },
+          { date: "2026-09-29", label: "Sep 29", y2: 4.89, y10: 5.26, y30: 5.59 },
+          { date: "2026-09-30", label: "Sep 30", y2: 4.88, y10: 5.29, y30: 5.64 },
+          { date: "2026-10-01", label: "Oct 1", y2: 4.78, y10: 5.24, y30: 5.61 },
+          { date: "2026-10-02", label: "Oct 2", y2: 4.83, y10: 5.28, y30: 5.63 },
+          { date: "2026-10-05", label: "Oct 5", y2: 4.84, y10: 5.31, y30: 5.66 },
+          { date: "2026-10-06", label: "Oct 6", y2: 4.79, y10: 5.27, y30: 5.64 }
+        ],
+        curve: [
+          { label: "1M", value: 4.06 }, { label: "3M", value: 4.21 },
+          { label: "6M", value: 4.28 }, { label: "1Y", value: 4.46 },
+          { label: "2Y", value: 4.79 }, { label: "3Y", value: 4.88 },
+          { label: "5Y", value: 5.03 }, { label: "7Y", value: 5.15 },
+          { label: "10Y", value: 5.27 }, { label: "20Y", value: 5.68 },
+          { label: "30Y", value: 5.64 }
+        ]
+      };
+
+      var menuToggle = document.getElementById("menuToggle");
+      var menuClose = document.getElementById("menuClose");
+      var menuBackdrop = document.getElementById("menuBackdrop");
+      var quickMenu = document.getElementById("quickMenu");
+      var viewLinks = Array.prototype.slice.call(document.querySelectorAll(".view-link"));
+      var views = Array.prototype.slice.call(document.querySelectorAll(".view"));
+
+      function setMenu(open) {
+        quickMenu.classList.toggle("open", open);
+        menuBackdrop.classList.toggle("open", open);
+        quickMenu.setAttribute("aria-hidden", open ? "false" : "true");
+        menuBackdrop.setAttribute("aria-hidden", open ? "false" : "true");
+        menuToggle.setAttribute("aria-expanded", open ? "true" : "false");
+        document.body.classList.toggle("menu-open", open);
+        if (open) menuClose.focus();
+        else if (document.activeElement === menuClose) menuToggle.focus();
+      }
+
+      function showView(viewId) {
+        views.forEach(function (view) {
+          var active = view.id === viewId;
+          view.hidden = !active;
+          view.classList.toggle("active", active);
+        });
+        viewLinks.forEach(function (link) {
+          var active = link.getAttribute("data-view") === viewId;
+          link.classList.toggle("active", active);
+          if (active) link.setAttribute("aria-current", "page");
+          else link.removeAttribute("aria-current");
+        });
+        document.title = "Pricing Terminal";
+        setMenu(false);
+        window.scrollTo({ top: 0, behavior: "auto" });
+        if (viewId === "rateMarketsView") {
+          requestAnimationFrame(function () { renderRates(); });
+        }
+      }
+
+      menuToggle.addEventListener("click", function () { setMenu(!quickMenu.classList.contains("open")); });
+      menuClose.addEventListener("click", function () { setMenu(false); });
+      menuBackdrop.addEventListener("click", function () { setMenu(false); });
+      viewLinks.forEach(function (link) {
+        link.addEventListener("click", function (event) {
+          event.preventDefault();
+          showView(link.getAttribute("data-view"));
+        });
+      });
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && quickMenu.classList.contains("open")) setMenu(false);
+      });
+
+      function bpMove(current, prior) { return Math.round((current - prior) * 100); }
+      function formatBp(value) { return (value > 0 ? "+" : value < 0 ? "−" : "") + Math.abs(value) + " bp"; }
+      function moveClass(value) { return value > 0 ? "move-up" : value < 0 ? "move-down" : "move-flat"; }
+
+      function setMove(id, value, suffix) {
+        var element = document.getElementById(id);
+        element.textContent = formatBp(value) + (suffix || "");
+        element.className = moveClass(value);
+      }
+
+      function renderLineChart(svgId, points, options) {
+        var svg = document.getElementById(svgId);
+        var width = 560, height = 230;
+        var left = 46, right = 18, top = 18, bottom = 36;
+        var plotWidth = width - left - right;
+        var plotHeight = height - top - bottom;
+        var values = points.map(function (point) { return point.value; });
+        var min = Math.min.apply(null, values);
+        var max = Math.max.apply(null, values);
+        var pad = Math.max((max - min) * .18, .03);
+        var yMin = Math.floor((min - pad) * 20) / 20;
+        var yMax = Math.ceil((max + pad) * 20) / 20;
+        if (yMin === yMax) { yMin -= .05; yMax += .05; }
+        var dates = points.map(function (point) { return Date.parse(point.date); });
+        var dateMin = Math.min.apply(null, dates);
+        var dateMax = Math.max.apply(null, dates);
+        function xAt(point, index) {
+          if (options.timeScale && dateMax > dateMin) return left + (Date.parse(point.date) - dateMin) / (dateMax - dateMin) * plotWidth;
+          return left + (points.length === 1 ? .5 : index / (points.length - 1)) * plotWidth;
+        }
+        function yAt(value) { return top + (yMax - value) / (yMax - yMin) * plotHeight; }
+        var coords = points.map(function (point, index) { return [xAt(point, index), yAt(point.value)]; });
+        var path = coords.map(function (coord, index) { return (index ? "L" : "M") + coord[0].toFixed(2) + " " + coord[1].toFixed(2); }).join(" ");
+        var namespace = "http://www.w3.org/2000/svg";
+        var fragment = document.createDocumentFragment();
+
+        function svgNode(name, attributes, text) {
+          var node = document.createElementNS(namespace, name);
+          Object.keys(attributes || {}).forEach(function (attribute) { node.setAttribute(attribute, attributes[attribute]); });
+          if (typeof text === "string") node.textContent = text;
+          return node;
+        }
+
+        for (var tickIndex = 0; tickIndex < 4; tickIndex++) {
+          var tickFraction = tickIndex / 3;
+          var tickY = top + tickFraction * plotHeight;
+          var tickValue = yMax - tickFraction * (yMax - yMin);
+          fragment.appendChild(svgNode("line", { "class": "chart-grid-line", x1: left, y1: tickY.toFixed(2), x2: width - right, y2: tickY.toFixed(2) }));
+          fragment.appendChild(svgNode("text", { "class": "chart-axis-label", x: left - 8, y: (tickY + 3).toFixed(2), "text-anchor": "end" }, tickValue.toFixed(2) + "%"));
+        }
+
+        fragment.appendChild(svgNode("path", { "class": "chart-path", d: path }));
+        coords.forEach(function (coord, index) {
+          var point = points[index];
+          var circle = svgNode("circle", {
+            "class": "chart-dot" + (index === points.length - 1 ? " latest" : ""),
+            cx: coord[0].toFixed(2),
+            cy: coord[1].toFixed(2),
+            r: 4
+          });
+          circle.appendChild(svgNode("title", {}, point.label + ": " + point.value.toFixed(2) + "%"));
+          fragment.appendChild(circle);
+        });
+
+        var labelIndexes = options.labelIndexes || [0, points.length - 1];
+        labelIndexes.forEach(function (index) {
+          var x = coords[index][0];
+          var anchor = index === 0 ? "start" : index === points.length - 1 ? "end" : "middle";
+          fragment.appendChild(svgNode("text", { "class": "chart-axis-label", x: x.toFixed(2), y: height - 11, "text-anchor": anchor }, points[index].label));
+        });
+
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        svg.appendChild(fragment);
+      }
+
+      function renderRates() {
+        var treasury = rateData.treasuries;
+        var current = treasury[treasury.length - 1];
+        var prior = treasury[treasury.length - 2];
+        var first = treasury[0];
+        var y2Move = bpMove(current.y2, prior.y2);
+        var y10Move = bpMove(current.y10, prior.y10);
+        var y30Move = bpMove(current.y30, prior.y30);
+        var slope = Math.round((current.y10 - current.y2) * 100);
+        var priorSlope = Math.round((prior.y10 - prior.y2) * 100);
+        var slopeMove = slope - priorSlope;
+        var monthLabels = [0, 5, 10, 15, 20];
+
+        document.getElementById("twoYearLatest").textContent = current.y2.toFixed(2) + "%";
+        document.getElementById("tenYearLatest").textContent = current.y10.toFixed(2) + "%";
+        document.getElementById("thirtyYearLatest").textContent = current.y30.toFixed(2) + "%";
+        document.getElementById("curveSlope").textContent = "+" + slope + " bp";
+        setMove("twoYearMove", y2Move, " daily");
+        setMove("tenYearMove", y10Move, " daily");
+        setMove("thirtyYearMove", y30Move, " daily");
+        setMove("curveMove", slopeMove, " steeper");
+        document.getElementById("twoYearChartValue").textContent = current.y2.toFixed(2) + "%";
+        document.getElementById("tenYearChartValue").textContent = current.y10.toFixed(2) + "%";
+        document.getElementById("thirtyYearChartValue").textContent = current.y30.toFixed(2) + "%";
+        document.getElementById("curveChartValue").textContent = "+" + slope + " bp";
+        document.getElementById("twoYearWindowMove").textContent = formatBp(bpMove(current.y2, first.y2)) + " over month";
+        document.getElementById("tenYearWindowMove").textContent = formatBp(bpMove(current.y10, first.y10)) + " over month";
+        document.getElementById("thirtyYearWindowMove").textContent = formatBp(bpMove(current.y30, first.y30)) + " over month";
+
+        renderLineChart("twoYearChart", treasury.map(function (row) { return { date: row.date, label: row.label, value: row.y2 }; }), { timeScale: true, labelIndexes: monthLabels });
+        renderLineChart("tenYearChart", treasury.map(function (row) { return { date: row.date, label: row.label, value: row.y10 }; }), { timeScale: true, labelIndexes: monthLabels });
+        renderLineChart("thirtyYearChart", treasury.map(function (row) { return { date: row.date, label: row.label, value: row.y30 }; }), { timeScale: true, labelIndexes: monthLabels });
+        renderLineChart("yieldCurveChart", rateData.curve.map(function (row, index) { return { date: String(index), label: row.label, value: row.value }; }), { labelIndexes: [0, 2, 4, 6, 8, 10] });
+      }
+
+      var refreshRatesButton = document.getElementById("refreshRates");
+      refreshRatesButton.addEventListener("click", function () {
+        window.location.reload();
+      });
+
+      renderRates();
+
+      var state = { term: 36, expanded: false, rows: [], futureValue: 0, endUserRateEdited: false };
+      var contractType = document.getElementById("contractType");
+      var principal = document.getElementById("principal");
+      var rate = document.getElementById("rate");
+      var residual = document.getElementById("residual");
+      var residualField = document.getElementById("residualField");
+      var timing = document.getElementById("timing");
+      var subsidized = document.getElementById("subsidized");
+      var subsidySection = document.getElementById("subsidySection");
+      var endUserRate = document.getElementById("endUserRate");
+      var subsidyPct = document.getElementById("subsidyPct");
+      var subsidyAmount = document.getElementById("subsidyAmount");
+      var points = document.getElementById("points");
+      var pointsSection = document.getElementById("pointsSection");
+      var pointsPct = document.getElementById("pointsPct");
+      var pointsEndUserRate = document.getElementById("pointsEndUserRate");
+      var pointsAmount = document.getElementById("pointsAmount");
+      var termButtons = Array.prototype.slice.call(document.querySelectorAll(".term-btn"));
+      var paymentEl = document.getElementById("payment");
+      var dueNowSummaryEl = document.getElementById("dueNowSummary");
+      var dueNowEl = document.getElementById("dueNow");
+      var dueNowLabelEl = document.getElementById("dueNowLabel");
+      var totalPaidEl = document.getElementById("totalPaid");
+      var financeEl = document.getElementById("financeCharge");
+      var rateFactorEl = document.getElementById("rateFactor");
+      var financeHelpEl = document.getElementById("financeHelp");
+      var paymentCountEl = document.getElementById("paymentCount");
+      var periodRateEl = document.getElementById("periodRate");
+      var scheduleBody = document.getElementById("scheduleBody");
+      var scheduleNote = document.getElementById("scheduleNote");
+      var moreNote = document.getElementById("moreNote");
+      var toggleRows = document.getElementById("toggleRows");
+      var errorEl = document.getElementById("inputError");
+      var termValue = document.getElementById("termValue");
+      var methodText = document.getElementById("methodText");
+      var formulaEl = document.getElementById("formula");
+      var futureValueAssumptionEl = document.getElementById("futureValueAssumption");
+
+      function money(value) {
+        return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(value) < 0.005 ? 0 : value);
+      }
+
+      function pct(value, digits) {
+        return new Intl.NumberFormat("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value) + "%";
+      }
+
+      function timingModel() {
+        if (timing.value === "down1") return { down: 1, defer: 0, label: "1 payment due at signing" };
+        if (timing.value === "down2") return { down: 2, defer: 0, label: "2 payments due at signing" };
+        if (timing.value === "defer2") return { down: 0, defer: 2, label: "First payment in month 3" };
+        if (timing.value === "defer3") return { down: 0, defer: 3, label: "First payment in month 4" };
+        return { down: 0, defer: 0, label: "First payment in month 1" };
+      }
+
+      function paymentFactor(monthlyRate, n, model) {
+        var factor = model.down;
+        var remaining = n - model.down;
+        var start = model.defer + 1;
+        for (var i = 0; i < remaining; i++) {
+          factor += Math.pow(1 + monthlyRate, -(start + i));
+        }
+        return factor;
+      }
+
+      var factorAllTerms = [6, 12, 24, 36, 48, 60, 72, 84];
+      var factorTerms = [12, 24, 36, 48, 60, 72];
+      var factorBuckets = ["Bucket 1", "Bucket 2", "Bucket 3", "Bucket 4"];
+      var factorRateValues = {};
+      var factorResidualValues = {};
+      var minFactorBuckets = 1;
+      var maxFactorBuckets = 6;
+      var factorScenarios = [
+        { bodyId: "factorZero", label: "0 Down", model: { down: 0, defer: 0 } },
+        { bodyId: "factorOne", label: "1 Down", model: { down: 1, defer: 0 } },
+        { bodyId: "factorTwo", label: "2 Down", model: { down: 2, defer: 0 } },
+        { bodyId: "factorDeferTwo", label: "2 Periods Deferred", model: { down: 0, defer: 2 } },
+        { bodyId: "factorDeferThree", label: "3 Periods Deferred", model: { down: 0, defer: 3 } },
+        { bodyId: "factorDeferFour", label: "4 Periods Deferred", model: { down: 0, defer: 4 } }
+      ];
+      var factorInputsBody = document.getElementById("factorInputs");
+      var factorContractType = document.getElementById("factorContractType");
+      var factorError = document.getElementById("factorError");
+      var factorTermSelector = document.getElementById("factorTermSelector");
+      var factorTermNote = document.getElementById("factorTermNote");
+      var factorTermCheckboxes = Array.prototype.slice.call(factorTermSelector.querySelectorAll('input[name="factorTerm"]'));
+      var factorMatrixHeaderRows = Array.prototype.slice.call(document.querySelectorAll("#rateFactorView .factor-matrix thead tr"));
+      var copyFactorGridButton = document.getElementById("copyFactorGrid");
+      var removeFactorBucketButton = document.getElementById("removeFactorBucket");
+      var addFactorBucketButton = document.getElementById("addFactorBucket");
+      var factorBucketCount = document.getElementById("factorBucketCount");
+      var factorSelectionAnchor = null;
+      var factorSelectionFocus = null;
+      var factorShiftAnchor = null;
+      var suppressFactorFocusSelection = false;
+      var factorOutputBodyId = null;
+      var factorOutputSelectionAnchor = null;
+      var factorOutputSelectionFocus = null;
+      var factorOutputShiftAnchor = null;
+      var suppressFactorOutputFocusSelection = false;
+
+      function factorGridRowCount() {
+        return factorBuckets.length + (factorContractType.value === "lease" ? 1 : 0);
+      }
+
+      function factorInputAt(row, column) {
+        return document.querySelector('.factor-grid-input[data-row="' + row + '"][data-column="' + column + '"]');
+      }
+
+      function factorCellPosition(input) {
+        return { row: Number(input.dataset.row), column: Number(input.dataset.column) };
+      }
+
+      function selectFactorRange(anchor, focus) {
+        factorSelectionAnchor = { row: anchor.row, column: anchor.column };
+        factorSelectionFocus = { row: focus.row, column: focus.column };
+        var minRow = Math.min(anchor.row, focus.row);
+        var maxRow = Math.max(anchor.row, focus.row);
+        var minColumn = Math.min(anchor.column, focus.column);
+        var maxColumn = Math.max(anchor.column, focus.column);
+        factorInputsBody.querySelectorAll(".factor-grid-input").forEach(function (input) {
+          var position = factorCellPosition(input);
+          var selected = position.row >= minRow && position.row <= maxRow && position.column >= minColumn && position.column <= maxColumn;
+          var edge = selected && (position.row === minRow || position.row === maxRow || position.column === minColumn || position.column === maxColumn);
+          input.classList.toggle("is-selected", selected);
+          input.classList.toggle("is-selection-edge", edge);
+        });
+      }
+
+      function factorSelectionBounds(fallbackInput) {
+        var anchor = factorSelectionAnchor || factorCellPosition(fallbackInput);
+        var focus = factorSelectionFocus || anchor;
+        return {
+          minRow: Math.min(anchor.row, focus.row),
+          maxRow: Math.max(anchor.row, focus.row),
+          minColumn: Math.min(anchor.column, focus.column),
+          maxColumn: Math.max(anchor.column, focus.column)
+        };
+      }
+
+      function factorRangeText(bounds) {
+        var rows = [];
+        for (var row = bounds.minRow; row <= bounds.maxRow; row++) {
+          var values = [];
+          for (var column = bounds.minColumn; column <= bounds.maxColumn; column++) {
+            values.push(factorInputAt(row, column).value);
+          }
+          rows.push(values.join("\t"));
+        }
+        return rows.join("\r\n");
+      }
+
+      function factorOutputCellAt(bodyId, row, column) {
+        return document.querySelector('#' + bodyId + ' .factor-output[data-row="' + row + '"][data-column="' + column + '"]');
+      }
+
+      function factorOutputCellPosition(cell) {
+        return { row: Number(cell.dataset.row), column: Number(cell.dataset.column) };
+      }
+
+      function selectFactorOutputRange(bodyId, anchor, focus) {
+        document.querySelectorAll(".factor-output.is-selected, .factor-output.is-selection-edge").forEach(function (cell) {
+          cell.classList.remove("is-selected", "is-selection-edge");
+        });
+        factorOutputBodyId = bodyId;
+        factorOutputSelectionAnchor = { row: anchor.row, column: anchor.column };
+        factorOutputSelectionFocus = { row: focus.row, column: focus.column };
+        var minRow = Math.min(anchor.row, focus.row);
+        var maxRow = Math.max(anchor.row, focus.row);
+        var minColumn = Math.min(anchor.column, focus.column);
+        var maxColumn = Math.max(anchor.column, focus.column);
+        document.getElementById(bodyId).querySelectorAll(".factor-output").forEach(function (cell) {
+          var position = factorOutputCellPosition(cell);
+          var selected = position.row >= minRow && position.row <= maxRow && position.column >= minColumn && position.column <= maxColumn;
+          var edge = selected && (position.row === minRow || position.row === maxRow || position.column === minColumn || position.column === maxColumn);
+          cell.classList.toggle("is-selected", selected);
+          cell.classList.toggle("is-selection-edge", edge);
+        });
+      }
+
+      function factorOutputSelectionBounds(bodyId, fallbackCell) {
+        var fallback = factorOutputCellPosition(fallbackCell);
+        var anchor = factorOutputBodyId === bodyId && factorOutputSelectionAnchor ? factorOutputSelectionAnchor : fallback;
+        var focus = factorOutputBodyId === bodyId && factorOutputSelectionFocus ? factorOutputSelectionFocus : anchor;
+        return {
+          minRow: Math.min(anchor.row, focus.row),
+          maxRow: Math.max(anchor.row, focus.row),
+          minColumn: Math.min(anchor.column, focus.column),
+          maxColumn: Math.max(anchor.column, focus.column)
+        };
+      }
+
+      function factorOutputRangeText(bodyId, bounds) {
+        var rows = [];
+        for (var row = bounds.minRow; row <= bounds.maxRow; row++) {
+          var values = [];
+          for (var column = bounds.minColumn; column <= bounds.maxColumn; column++) {
+            values.push(factorOutputCellAt(bodyId, row, column).textContent);
+          }
+          rows.push(values.join("\t"));
+        }
+        return rows.join("\r\n");
+      }
+
+      function copyTextToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text);
+        }
+        var helper = document.createElement("textarea");
+        helper.value = text;
+        helper.setAttribute("readonly", "");
+        helper.style.position = "fixed";
+        helper.style.opacity = "0";
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand("copy");
+        helper.remove();
+        return Promise.resolve();
+      }
+
+      function showFactorCopySuccess(button, label) {
+        window.clearTimeout(button.factorCopyResetTimer);
+        button.textContent = label;
+        button.factorCopyResetTimer = window.setTimeout(function () {
+          button.textContent = "Copy grid";
+        }, 1600);
+      }
+
+      function showFactorCopyFailure(button) {
+        window.clearTimeout(button.factorCopyResetTimer);
+        button.textContent = "Copy unavailable";
+        button.factorCopyResetTimer = window.setTimeout(function () {
+          button.textContent = "Copy grid";
+        }, 1600);
+      }
+
+      function normalizePastedRate(value) {
+        var cleaned = value.trim().replace(/\u00a0/g, "");
+        if (cleaned.slice(-1) === "%") cleaned = cleaned.slice(0, -1).trim();
+        if (/^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(cleaned)) cleaned = cleaned.replace(/,/g, "");
+        else if (/^[+-]?\d+,\d+$/.test(cleaned)) cleaned = cleaned.replace(",", ".");
+        return cleaned;
+      }
+
+      function factorRateKey(bucketIndex, term) {
+        return bucketIndex + "|" + term;
+      }
+
+      function captureFactorRates() {
+        factorBuckets.forEach(function (_bucket, bucketIndex) {
+          factorTerms.forEach(function (term, termIndex) {
+            var input = factorInputAt(bucketIndex, termIndex);
+            if (input) factorRateValues[factorRateKey(bucketIndex, term)] = input.value;
+          });
+        });
+        factorTerms.forEach(function (term) {
+          var input = document.getElementById("factorResidual" + term);
+          if (input) factorResidualValues[term] = input.value;
+        });
+      }
+
+      function renderFactorHeaders() {
+        var headerCells = '<th scope="col">Bucket</th>' + factorTerms.map(function (term) {
+          return '<th scope="col">' + term + '</th>';
+        }).join("");
+        factorMatrixHeaderRows.forEach(function (row) { row.innerHTML = headerCells; });
+      }
+
+      function updateFactorTermControls(message) {
+        var onlyOneTerm = factorTerms.length === 1;
+        factorTermCheckboxes.forEach(function (checkbox) {
+          checkbox.disabled = onlyOneTerm && checkbox.checked;
+          checkbox.setAttribute("aria-disabled", checkbox.disabled ? "true" : "false");
+        });
+        factorTermNote.textContent = message || "Select one or more terms.";
+        factorTermNote.classList.toggle("is-alert", Boolean(message));
+      }
+
+      function updateFactorBucketControls() {
+        var count = factorBuckets.length;
+        factorBucketCount.textContent = count + (count === 1 ? " bucket" : " buckets");
+        removeFactorBucketButton.disabled = count <= minFactorBuckets;
+        addFactorBucketButton.disabled = count >= maxFactorBuckets;
+        removeFactorBucketButton.setAttribute("aria-disabled", removeFactorBucketButton.disabled ? "true" : "false");
+        addFactorBucketButton.setAttribute("aria-disabled", addFactorBucketButton.disabled ? "true" : "false");
+      }
+
+      function renderFactorTables() {
+        renderFactorHeaders();
+        var rateRows = factorBuckets.map(function (bucket, bucketIndex) {
+          var fields = factorTerms.map(function (term, termIndex) {
+            var id = "factorRate" + bucketIndex + "x" + term;
+            var key = factorRateKey(bucketIndex, term);
+            var value = Object.prototype.hasOwnProperty.call(factorRateValues, key) ? factorRateValues[key] : "8.50";
+            return '<td data-term="' + term + '"><input class="factor-rate-input factor-grid-input" id="' + id + '" data-row="' + bucketIndex + '" data-column="' + termIndex + '" type="number" inputmode="decimal" min="0" max="100" step="0.01" value="' + value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;") + '" aria-label="' + bucket + ', ' + term + ' months, annual rate percent"></td>';
+          }).join("");
+          return '<tr><th scope="row">' + bucket + '</th>' + fields + '</tr>';
+        }).join("");
+        var residualRow = "";
+        if (factorContractType.value === "lease") {
+          residualRow = '<tr class="factor-residual-row"><th scope="row">Residual</th>' + factorTerms.map(function (term, termIndex) {
+            var value = Object.prototype.hasOwnProperty.call(factorResidualValues, term) ? factorResidualValues[term] : "20.00";
+            var escapedValue = value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            return '<td data-term="' + term + '"><div class="factor-residual-wrap"><input class="factor-residual-input factor-grid-input" id="factorResidual' + term + '" data-row="' + factorBuckets.length + '" data-column="' + termIndex + '" type="number" inputmode="decimal" min="0" max="100" step="0.01" value="' + escapedValue + '" aria-label="Residual, ' + term + ' months, percent"></div></td>';
+          }).join("") + '</tr>';
+        }
+        factorInputsBody.innerHTML = rateRows + residualRow;
+
+        factorScenarios.forEach(function (scenario) {
+          document.getElementById(scenario.bodyId).innerHTML = factorBuckets.map(function (bucket, bucketIndex) {
+            var cells = factorTerms.map(function (term, termIndex) {
+              return '<td class="factor-output" tabindex="0" data-row="' + bucketIndex + '" data-column="' + termIndex + '" data-term="' + term + '" id="' + scenario.bodyId + '-' + bucketIndex + '-' + term + '" aria-label="' + scenario.label + ', ' + bucket + ', ' + term + ' months rate factor">—</td>';
+            }).join("");
+            return '<tr><th scope="row">' + bucket + '</th>' + cells + '</tr>';
+          }).join("");
+        });
+
+        factorSelectionAnchor = null;
+        factorSelectionFocus = null;
+        factorOutputBodyId = null;
+        factorOutputSelectionAnchor = null;
+        factorOutputSelectionFocus = null;
+        selectFactorRange({ row: 0, column: 0 }, { row: 0, column: 0 });
+        updateFactorBucketControls();
+        updateFactorTermControls();
+        renderFactorStation();
+      }
+
+      function adjustFactorBuckets(change) {
+        var nextCount = factorBuckets.length + change;
+        if (nextCount < minFactorBuckets || nextCount > maxFactorBuckets) return;
+        captureFactorRates();
+        if (change > 0) factorBuckets.push("Bucket " + nextCount);
+        else factorBuckets.pop();
+        renderFactorTables();
+      }
+
+      function createFactorStation() {
+        renderFactorTables();
+
+        factorInputsBody.addEventListener("input", function () {
+          captureFactorRates();
+          renderFactorStation();
+        });
+
+        factorTermSelector.addEventListener("change", function (event) {
+          if (!event.target.matches('input[name="factorTerm"]')) return;
+          captureFactorRates();
+          var selectedTerms = factorAllTerms.filter(function (term) {
+            var checkbox = factorTermSelector.querySelector('input[name="factorTerm"][value="' + term + '"]');
+            return checkbox && checkbox.checked;
+          });
+          if (!selectedTerms.length) {
+            event.target.checked = true;
+            updateFactorTermControls("Keep at least one term selected.");
+            return;
+          }
+          factorTerms = selectedTerms;
+          renderFactorTables();
+        });
+
+        factorContractType.addEventListener("change", function () {
+          captureFactorRates();
+          renderFactorTables();
+        });
+
+        factorInputsBody.addEventListener("pointerdown", function (event) {
+          var input = event.target.closest(".factor-grid-input");
+          if (!input) return;
+          factorShiftAnchor = event.shiftKey && factorSelectionAnchor ? {
+            row: factorSelectionAnchor.row,
+            column: factorSelectionAnchor.column
+          } : null;
+        });
+
+        factorInputsBody.addEventListener("focusin", function (event) {
+          var input = event.target.closest(".factor-grid-input");
+          if (!input || suppressFactorFocusSelection) return;
+          var position = factorCellPosition(input);
+          if (factorShiftAnchor) {
+            selectFactorRange(factorShiftAnchor, position);
+            factorShiftAnchor = null;
+          } else {
+            selectFactorRange(position, position);
+          }
+        });
+
+        factorInputsBody.addEventListener("keydown", function (event) {
+          var input = event.target.closest(".factor-grid-input");
+          if (!input || !event.shiftKey || !/^Arrow(Up|Down|Left|Right)$/.test(event.key)) return;
+          event.preventDefault();
+          var current = factorCellPosition(input);
+          var next = { row: current.row, column: current.column };
+          if (event.key === "ArrowUp") next.row--;
+          if (event.key === "ArrowDown") next.row++;
+          if (event.key === "ArrowLeft") next.column--;
+          if (event.key === "ArrowRight") next.column++;
+          next.row = Math.max(0, Math.min(factorGridRowCount() - 1, next.row));
+          next.column = Math.max(0, Math.min(factorTerms.length - 1, next.column));
+          var nextInput = factorInputAt(next.row, next.column);
+          var anchor = factorSelectionAnchor || current;
+          suppressFactorFocusSelection = true;
+          nextInput.focus();
+          suppressFactorFocusSelection = false;
+          selectFactorRange(anchor, next);
+        });
+
+        factorInputsBody.addEventListener("copy", function (event) {
+          var input = event.target.closest(".factor-grid-input");
+          if (!input || !event.clipboardData) return;
+          event.preventDefault();
+          event.clipboardData.setData("text/plain", factorRangeText(factorSelectionBounds(input)));
+        });
+
+        factorInputsBody.addEventListener("paste", function (event) {
+          var input = event.target.closest(".factor-grid-input");
+          if (!input || !event.clipboardData) return;
+          var clipboardText = event.clipboardData.getData("text/plain");
+          if (!clipboardText) return;
+          event.preventDefault();
+          var rows = clipboardText.replace(/\r/g, "").split("\n");
+          if (rows.length > 1 && rows[rows.length - 1] === "") rows.pop();
+          var start = factorCellPosition(input);
+          var pastedMaxRow = start.row;
+          var pastedMaxColumn = start.column;
+          rows.forEach(function (rowText, rowOffset) {
+            var row = start.row + rowOffset;
+            if (row >= factorGridRowCount()) return;
+            rowText.split("\t").forEach(function (value, columnOffset) {
+              var column = start.column + columnOffset;
+              if (column >= factorTerms.length) return;
+              factorInputAt(row, column).value = normalizePastedRate(value);
+              pastedMaxRow = Math.max(pastedMaxRow, row);
+              pastedMaxColumn = Math.max(pastedMaxColumn, column);
+            });
+          });
+          selectFactorRange(start, { row: pastedMaxRow, column: pastedMaxColumn });
+          captureFactorRates();
+          renderFactorStation();
+        });
+
+        factorScenarios.forEach(function (scenario) {
+          var body = document.getElementById(scenario.bodyId);
+
+          body.addEventListener("pointerdown", function (event) {
+            var cell = event.target.closest(".factor-output");
+            if (!cell) return;
+            factorOutputShiftAnchor = event.shiftKey && factorOutputBodyId === scenario.bodyId && factorOutputSelectionAnchor ? {
+              row: factorOutputSelectionAnchor.row,
+              column: factorOutputSelectionAnchor.column
+            } : null;
+          });
+
+          body.addEventListener("focusin", function (event) {
+            var cell = event.target.closest(".factor-output");
+            if (!cell || suppressFactorOutputFocusSelection) return;
+            var position = factorOutputCellPosition(cell);
+            if (factorOutputShiftAnchor) {
+              selectFactorOutputRange(scenario.bodyId, factorOutputShiftAnchor, position);
+              factorOutputShiftAnchor = null;
+            } else {
+              selectFactorOutputRange(scenario.bodyId, position, position);
+            }
+          });
+
+          body.addEventListener("keydown", function (event) {
+            var cell = event.target.closest(".factor-output");
+            if (!cell || !event.shiftKey || !/^Arrow(Up|Down|Left|Right)$/.test(event.key)) return;
+            event.preventDefault();
+            var current = factorOutputCellPosition(cell);
+            var next = { row: current.row, column: current.column };
+            if (event.key === "ArrowUp") next.row--;
+            if (event.key === "ArrowDown") next.row++;
+            if (event.key === "ArrowLeft") next.column--;
+            if (event.key === "ArrowRight") next.column++;
+            next.row = Math.max(0, Math.min(factorBuckets.length - 1, next.row));
+            next.column = Math.max(0, Math.min(factorTerms.length - 1, next.column));
+            var nextCell = factorOutputCellAt(scenario.bodyId, next.row, next.column);
+            var anchor = factorOutputBodyId === scenario.bodyId && factorOutputSelectionAnchor ? factorOutputSelectionAnchor : current;
+            suppressFactorOutputFocusSelection = true;
+            nextCell.focus();
+            suppressFactorOutputFocusSelection = false;
+            selectFactorOutputRange(scenario.bodyId, anchor, next);
+          });
+
+          body.addEventListener("copy", function (event) {
+            var cell = event.target.closest(".factor-output");
+            if (!cell || !event.clipboardData) return;
+            event.preventDefault();
+            event.clipboardData.setData("text/plain", factorOutputRangeText(scenario.bodyId, factorOutputSelectionBounds(scenario.bodyId, cell)));
+          });
+        });
+
+        document.querySelectorAll("[data-factor-copy]").forEach(function (button) {
+          button.addEventListener("click", function () {
+            var bodyId = button.dataset.factorCopy;
+            var bounds = { minRow: 0, maxRow: factorBuckets.length - 1, minColumn: 0, maxColumn: factorTerms.length - 1 };
+            copyTextToClipboard(factorOutputRangeText(bodyId, bounds)).then(function () {
+              showFactorCopySuccess(button, "Grid copied");
+            }).catch(function () {
+              showFactorCopyFailure(button);
+            });
+          });
+        });
+
+        removeFactorBucketButton.addEventListener("click", function () { adjustFactorBuckets(-1); });
+        addFactorBucketButton.addEventListener("click", function () { adjustFactorBuckets(1); });
+
+        copyFactorGridButton.addEventListener("click", function () {
+          var bounds = { minRow: 0, maxRow: factorGridRowCount() - 1, minColumn: 0, maxColumn: factorTerms.length - 1 };
+          copyTextToClipboard(factorRangeText(bounds)).then(function () {
+            showFactorCopySuccess(copyFactorGridButton, "Grid copied");
+          }).catch(function () {
+            showFactorCopyFailure(copyFactorGridButton);
+          });
+        });
+      }
+
+      function renderFactorStation() {
+        var hasInvalidRate = false;
+        var hasInvalidResidual = false;
+        var lease = factorContractType.value === "lease";
+        var residualFractions = {};
+        var residualValidity = {};
+
+        factorTerms.forEach(function (term) {
+          var input = document.getElementById("factorResidual" + term);
+          var residualPercent = input ? Number(input.value) : 0;
+          var valid = !lease || (input.value.trim() !== "" && isFinite(residualPercent) && residualPercent >= 0 && residualPercent <= 100);
+          if (input) input.setAttribute("aria-invalid", valid ? "false" : "true");
+          if (!valid) hasInvalidResidual = true;
+          residualValidity[term] = valid;
+          residualFractions[term] = valid ? residualPercent / 100 : 0;
+        });
+
+        factorBuckets.forEach(function (_bucket, bucketIndex) {
+          factorTerms.forEach(function (term) {
+            var input = document.getElementById("factorRate" + bucketIndex + "x" + term);
+            var annualRate = Number(input.value);
+            var valid = input.value.trim() !== "" && isFinite(annualRate) && annualRate >= 0 && annualRate <= 100;
+            input.setAttribute("aria-invalid", valid ? "false" : "true");
+            if (!valid) hasInvalidRate = true;
+            factorScenarios.forEach(function (scenario) {
+              var output = document.getElementById(scenario.bodyId + "-" + bucketIndex + "-" + term);
+              output.textContent = valid && residualValidity[term] ? solvePayment(1, residualFractions[term], annualRate / 100 / 12, term, scenario.model).toFixed(6) : "—";
+            });
+          });
+        });
+        if (hasInvalidRate && hasInvalidResidual) factorError.textContent = "Enter annual rates and residuals from 0% to 100%.";
+        else if (hasInvalidResidual) factorError.textContent = "Enter residuals from 0% to 100%.";
+        else factorError.textContent = "Enter annual rates from 0% to 100%.";
+        factorError.classList.toggle("show", hasInvalidRate || hasInvalidResidual);
+      }
+
+      createFactorStation();
+
+      var solverRowsEl = document.getElementById("solverRows");
+      var solverModeEl = document.getElementById("solverMode");
+      var solverModeHelp = document.getElementById("solverModeHelp");
+      var solverError = document.getElementById("solverError");
+      var solverOptionCount = document.getElementById("solverOptionCount");
+      var removeSolverOption = document.getElementById("removeSolverOption");
+      var addSolverOption = document.getElementById("addSolverOption");
+      var solverOptions = [createSolverOption(), createSolverOption(), createSolverOption(), createSolverOption()];
+
+      function createSolverOption() {
+        return {
+          contract: "conditional",
+          timing: "ordinary",
+          term: "36",
+          yieldRate: "8.50",
+          residual: "20.00",
+          endUserRate: "6.50",
+          subsidy: "0.00"
+        };
+      }
+
+      function currentSolverMode() {
+        var active = solverModeEl.querySelector('.solver-mode-option[aria-pressed="true"]');
+        return active ? active.dataset.solverMode : "subsidy";
+      }
+
+      function solverTimingModel(value) {
+        if (value === "down1") return { down: 1, defer: 0 };
+        if (value === "down2") return { down: 2, defer: 0 };
+        if (value === "defer2") return { down: 0, defer: 2 };
+        if (value === "defer3") return { down: 0, defer: 3 };
+        return { down: 0, defer: 0 };
+      }
+
+      function solverSelectOptions(selected, options) {
+        return options.map(function (option) {
+          return '<option value="' + option.value + '"' + (option.value === selected ? " selected" : "") + '>' + option.label + '</option>';
+        }).join("");
+      }
+
+      function renderSolverOptions() {
+        var mode = currentSolverMode();
+        solverModeHelp.textContent = mode === "subsidy" ? "Enter the End User Rate; Subsidy is calculated." : "Enter the Subsidy; End User Rate is calculated.";
+        solverRowsEl.innerHTML = solverOptions.map(function (option, index) {
+          var lease = option.contract === "lease";
+          var endUserReadonly = mode === "rate";
+          var subsidyReadonly = mode === "subsidy";
+          return '<div class="solver-row" data-solver-index="' + index + '">' +
+            '<div class="solver-option-label">Option ' + (index + 1) + '</div>' +
+            '<div class="solver-cell solver-cell-contract"><span class="solver-cell-label">Contract Type</span><select data-solver-field="contract" aria-label="Option ' + (index + 1) + ' contract type">' + solverSelectOptions(option.contract, [{ value: "conditional", label: "Conditional Sale" }, { value: "lease", label: "True Lease" }]) + '</select></div>' +
+            '<div class="solver-cell solver-cell-timing"><span class="solver-cell-label">Payment Timing</span><select data-solver-field="timing" aria-label="Option ' + (index + 1) + ' payment timing">' + solverSelectOptions(option.timing, [{ value: "ordinary", label: "No down payment" }, { value: "down1", label: "1 down payment" }, { value: "down2", label: "2 down payments" }, { value: "defer2", label: "2 periods deferred" }, { value: "defer3", label: "3 periods deferred" }]) + '</select></div>' +
+            '<div class="solver-cell"><span class="solver-cell-label">Term</span><div class="input-wrap"><input data-solver-field="term" type="number" inputmode="numeric" min="1" max="360" step="1" value="' + option.term + '" aria-label="Option ' + (index + 1) + ' term in months"><span class="suffix">mo</span></div></div>' +
+            '<div class="solver-cell"><span class="solver-cell-label">Yield</span><div class="input-wrap"><input data-solver-field="yieldRate" type="number" inputmode="decimal" min="0" max="100" step="0.01" value="' + option.yieldRate + '" aria-label="Option ' + (index + 1) + ' yield percent"><span class="suffix">%</span></div></div>' +
+            '<div class="solver-cell solver-residual' + (lease ? "" : " is-unavailable") + '"><span class="solver-cell-label">Residual</span><div class="input-wrap"><input data-solver-field="residual" type="number" inputmode="decimal" min="0" max="100" step="0.01" value="' + (lease ? option.residual : "0.00") + '" aria-label="Option ' + (index + 1) + ' residual percent"' + (lease ? "" : " disabled") + '><span class="suffix">%</span></div></div>' +
+            '<div class="solver-cell' + (endUserReadonly ? " solver-output" : "") + '"><span class="solver-cell-label">End User Rate</span><div class="input-wrap"><input data-solver-field="endUserRate" type="' + (endUserReadonly ? "text" : "number") + '" inputmode="decimal" min="0" max="100" step="0.01" value="' + option.endUserRate + '" aria-label="Option ' + (index + 1) + ' end user rate percent"' + (endUserReadonly ? ' readonly aria-readonly="true"' : "") + '><span class="suffix">%</span></div></div>' +
+            '<div class="solver-cell' + (subsidyReadonly ? " solver-output" : "") + '"><span class="solver-cell-label">Subsidy</span><div class="input-wrap"><input data-solver-field="subsidy" type="' + (subsidyReadonly ? "text" : "number") + '" inputmode="decimal" min="0" max="100" step="0.01" value="' + option.subsidy + '" aria-label="Option ' + (index + 1) + ' subsidy percent"' + (subsidyReadonly ? ' readonly aria-readonly="true"' : "") + '><span class="suffix">%</span></div></div>' +
+            '<div class="solver-cell solver-output"><span class="solver-cell-label">Rate Factor</span><input data-solver-output="rateFactor" type="text" value="—" readonly aria-readonly="true" aria-label="Option ' + (index + 1) + ' rate factor"></div>' +
+          '</div>';
+        }).join("");
+        updateSolverOptionControls();
+        calculateSolverOptions();
+      }
+
+      function updateSolverOptionControls() {
+        var count = solverOptions.length;
+        solverOptionCount.textContent = count + (count === 1 ? " option" : " options");
+        removeSolverOption.disabled = count <= 1;
+        addSolverOption.disabled = count >= 6;
+      }
+
+      function solverSubsidyFraction(endUserAnnual, yieldAnnual, term, model, residualFraction) {
+        var payment = solvePayment(1, residualFraction, endUserAnnual / 100 / 12, term, model);
+        var presentValueAtYield = cashFlowPresentValue(payment, residualFraction, yieldAnnual / 100 / 12, term, model);
+        return Math.max(0, 1 - presentValueAtYield);
+      }
+
+      function solverEndUserRate(subsidyFraction, yieldAnnual, term, model, residualFraction) {
+        if (subsidyFraction <= 0) return yieldAnnual;
+        var low = 0;
+        var high = yieldAnnual;
+        for (var iteration = 0; iteration < 70; iteration++) {
+          var middle = (low + high) / 2;
+          if (solverSubsidyFraction(middle, yieldAnnual, term, model, residualFraction) > subsidyFraction) low = middle;
+          else high = middle;
+        }
+        return (low + high) / 2;
+      }
+
+      function calculateSolverOptions() {
+        var mode = currentSolverMode();
+        var errors = [];
+        solverOptions.forEach(function (option, index) {
+          var row = solverRowsEl.querySelector('[data-solver-index="' + index + '"]');
+          if (!row) return;
+          var term = Number(option.term);
+          var yieldAnnual = Number(option.yieldRate);
+          var residualPercent = option.contract === "lease" ? Number(option.residual) : 0;
+          var model = solverTimingModel(option.timing);
+          var baseValid = option.term.trim() !== "" && isFinite(term) && term >= 1 && term <= 360 && Math.floor(term) === term && term >= model.down && option.yieldRate.trim() !== "" && isFinite(yieldAnnual) && yieldAnnual >= 0 && yieldAnnual <= 100 && isFinite(residualPercent) && residualPercent >= 0 && residualPercent <= 100;
+          var endUserAnnual = Number(option.endUserRate);
+          var subsidyPercent = Number(option.subsidy);
+          var dynamicValid = true;
+          var residualFraction = residualPercent / 100;
+          var maxSubsidyPercent = baseValid ? solverSubsidyFraction(0, yieldAnnual, term, model, residualFraction) * 100 : 0;
+
+          if (mode === "subsidy") {
+            dynamicValid = option.endUserRate.trim() !== "" && isFinite(endUserAnnual) && endUserAnnual >= 0 && endUserAnnual <= yieldAnnual;
+            if (baseValid && dynamicValid) {
+              subsidyPercent = solverSubsidyFraction(endUserAnnual, yieldAnnual, term, model, residualFraction) * 100;
+              option.subsidy = subsidyPercent.toFixed(4);
+              row.querySelector('[data-solver-field="subsidy"]').value = option.subsidy;
+            }
+          } else {
+            dynamicValid = option.subsidy.trim() !== "" && isFinite(subsidyPercent) && subsidyPercent >= 0 && subsidyPercent <= maxSubsidyPercent + 0.00005;
+            if (baseValid && dynamicValid) {
+              endUserAnnual = solverEndUserRate(subsidyPercent / 100, yieldAnnual, term, model, residualFraction);
+              option.endUserRate = endUserAnnual.toFixed(4);
+              row.querySelector('[data-solver-field="endUserRate"]').value = option.endUserRate;
+            }
+          }
+
+          var rowValid = baseValid && dynamicValid;
+          row.querySelectorAll("input, select").forEach(function (field) { field.setAttribute("aria-invalid", rowValid ? "false" : "true"); });
+          row.querySelector('[data-solver-output="rateFactor"]').value = rowValid ? solvePayment(1, residualFraction, endUserAnnual / 100 / 12, term, model).toFixed(6) : "—";
+          if (!rowValid) {
+            if (!baseValid) errors.push("Option " + (index + 1) + ": use a whole-number term from 1–360, a yield from 0%–100%, and a residual from 0%–100%.");
+            else if (mode === "subsidy") errors.push("Option " + (index + 1) + ": End User Rate must be from 0% through the Yield.");
+            else errors.push("Option " + (index + 1) + ": Subsidy must be from 0% through " + maxSubsidyPercent.toFixed(4) + "% for these terms.");
+          }
+        });
+        solverError.textContent = errors.join(" ");
+        solverError.classList.toggle("show", errors.length > 0);
+      }
+
+      solverModeEl.addEventListener("click", function (event) {
+        var button = event.target.closest("[data-solver-mode]");
+        if (!button) return;
+        solverModeEl.querySelectorAll("[data-solver-mode]").forEach(function (candidate) {
+          candidate.setAttribute("aria-pressed", candidate === button ? "true" : "false");
+        });
+        renderSolverOptions();
+      });
+      solverRowsEl.addEventListener("input", function (event) {
+        var field = event.target.closest("[data-solver-field]");
+        var row = event.target.closest("[data-solver-index]");
+        if (!field || !row || field.readOnly || field.disabled) return;
+        solverOptions[Number(row.dataset.solverIndex)][field.dataset.solverField] = field.value;
+        calculateSolverOptions();
+      });
+      solverRowsEl.addEventListener("change", function (event) {
+        var field = event.target.closest("[data-solver-field]");
+        var row = event.target.closest("[data-solver-index]");
+        if (!field || !row) return;
+        solverOptions[Number(row.dataset.solverIndex)][field.dataset.solverField] = field.value;
+        if (field.dataset.solverField === "contract") renderSolverOptions();
+        else calculateSolverOptions();
+      });
+      removeSolverOption.addEventListener("click", function () {
+        if (solverOptions.length <= 1) return;
+        solverOptions.pop();
+        renderSolverOptions();
+      });
+      addSolverOption.addEventListener("click", function () {
+        if (solverOptions.length >= 6) return;
+        solverOptions.push(createSolverOption());
+        renderSolverOptions();
+      });
+      renderSolverOptions();
+
+      function solvePayment(pv, fv, monthlyRate, n, model) {
+        var factor = paymentFactor(monthlyRate, n, model);
+        var span = model.defer + n;
+        var discountedFutureValue = fv / Math.pow(1 + monthlyRate, span);
+        return (pv - discountedFutureValue) / factor;
+      }
+
+      function cashFlowPresentValue(pmt, fv, monthlyRate, n, model) {
+        var span = model.defer + n;
+        return pmt * paymentFactor(monthlyRate, n, model) + fv / Math.pow(1 + monthlyRate, span);
+      }
+
+      function subsidyForAnnualRate(pv, fv, customerAnnual, targetMonthlyRate, n, model) {
+        var customerMonthlyRate = customerAnnual / 100 / 12;
+        var pmt = solvePayment(pv, fv, customerMonthlyRate, n, model);
+        return Math.max(0, pv - cashFlowPresentValue(pmt, fv, targetMonthlyRate, n, model));
+      }
+
+      function solveEndUserAnnualRate(pv, fv, pointsValue, targetAnnual, targetMonthlyRate, n, model) {
+        if (pointsValue <= 0 || targetAnnual <= 0) return targetAnnual;
+        var low = 0;
+        var high = targetAnnual;
+        for (var i = 0; i < 70; i++) {
+          var middle = (low + high) / 2;
+          var subsidyAtMiddle = subsidyForAnnualRate(pv, fv, middle, targetMonthlyRate, n, model);
+          if (subsidyAtMiddle > pointsValue) low = middle;
+          else high = middle;
+        }
+        return (low + high) / 2;
+      }
+
+      function buildSchedule(pv, fv, monthlyRate, n, model, pmt, maturitySpan) {
+        var rows = [];
+        var balance = pv;
+        var i;
+        for (i = 0; i < model.down; i++) {
+          var downPrincipal = Math.min(pmt, balance);
+          balance -= downPrincipal;
+          rows.push({ label: "Signing · " + (i + 1), payment: pmt, interest: 0, principal: downPrincipal, balance: Math.max(0, balance) });
+        }
+        var regularCount = n - model.down;
+        var paid = 0;
+        for (i = 1; i <= maturitySpan; i++) {
+          var interest = balance * monthlyRate;
+          var payment = i > model.defer && paid < regularCount ? pmt : 0;
+          var principalPaid = payment - interest;
+          balance = balance + interest - payment;
+          if (payment > 0) paid++;
+          if (i === maturitySpan && Math.abs(balance - fv) < 0.01) balance = fv;
+          rows.push({ label: "Month " + i, payment: payment, interest: interest, principal: principalPaid, balance: Math.max(0, balance), deferred: payment === 0 });
+        }
+        return rows;
+      }
+
+      function renderRows() {
+        var visible = state.expanded ? state.rows : state.rows.slice(0, 12);
+        scheduleBody.innerHTML = visible.map(function (row) {
+          var rowClass = row.deferred ? " class=\"zero-pay\"" : "";
+          var balanceClass = row.balance < 0.005 ? " class=\"balance-zero\"" : "";
+          return "<tr" + rowClass + ">" +
+            "<td>" + row.label + "</td>" +
+            "<td data-label=\"Payment\">" + money(row.payment) + "</td>" +
+            "<td data-label=\"Interest\">" + money(row.interest) + "</td>" +
+            "<td data-label=\"Principal\">" + money(row.principal) + "</td>" +
+            "<td data-label=\"Balance\"" + balanceClass + ">" + money(row.balance) + "</td>" +
+          "</tr>";
+        }).join("");
+        var hidden = Math.max(0, state.rows.length - visible.length);
+        scheduleNote.textContent = state.expanded ? "All " + state.rows.length + " rows" : "First " + visible.length + " of " + state.rows.length + " rows";
+        moreNote.textContent = hidden ? hidden + " additional rows available" : "Ending balance: " + money(state.futureValue);
+        toggleRows.textContent = state.expanded ? "Show first 12" : "Show all";
+        toggleRows.hidden = state.rows.length <= 12;
+      }
+
+      function calculate() {
+        var pv = Number(principal.value);
+        var annual = Number(rate.value);
+        var lease = contractType.value === "lease";
+        var hasSubsidy = subsidized.checked;
+        var hasPoints = points.checked;
+        var customerRateEntered = endUserRate.value.trim() !== "";
+        var enteredPoints = pointsPct.value.trim() !== "";
+        var pointsPercent = Number(pointsPct.value);
+        var residualPct = lease ? Number(residual.value) : 0;
+        var baseValid = isFinite(pv) && pv > 0 && isFinite(annual) && annual >= 0 && annual <= 100 && isFinite(residualPct) && residualPct >= 0 && residualPct <= 100;
+        if (!baseValid) {
+          errorEl.textContent = lease ? "Enter a principal above $0, an annual rate from 0% to 100%, and a residual from 0% to 100%." : "Enter a principal above $0 and an annual rate from 0% to 100%.";
+          errorEl.classList.add("show");
+          return;
+        }
+
+        var targetMonthlyRate = annual / 100 / 12;
+        var model = timingModel();
+        var futureValue = pv * residualPct / 100;
+        var pointsValue = pv * pointsPercent / 100;
+        var maxPointsValue = subsidyForAnnualRate(pv, futureValue, 0, targetMonthlyRate, state.term, model);
+        var maxPointsPercent = maxPointsValue / pv * 100;
+        var pointsBasicValid = !hasPoints || (enteredPoints && isFinite(pointsPercent) && pointsPercent >= 0 && pointsPercent <= 100);
+        var pointsRangeValid = !hasPoints || (pointsBasicValid && pointsValue <= maxPointsValue + 0.005);
+        var customerAnnual = hasPoints && pointsBasicValid && pointsRangeValid
+          ? solveEndUserAnnualRate(pv, futureValue, pointsValue, annual, targetMonthlyRate, state.term, model)
+          : (hasSubsidy && customerRateEntered ? Number(endUserRate.value) : annual);
+        var subsidyValid = !hasSubsidy || hasPoints || (customerRateEntered && isFinite(customerAnnual) && customerAnnual >= 0 && customerAnnual <= annual);
+        var valid = pointsBasicValid && pointsRangeValid && subsidyValid;
+        if (!pointsBasicValid) {
+          errorEl.textContent = "Enter Points % from 0% to 100%.";
+        } else if (!pointsRangeValid) {
+          errorEl.textContent = "For these terms, Points % can be no more than " + pct(maxPointsPercent, 2) + ", which corresponds to a 0% End User Rate.";
+        } else if (!subsidyValid) {
+          errorEl.textContent = "Enter an End User Rate from 0% up to the annual interest rate of " + pct(annual, 2) + ".";
+        }
+        errorEl.classList.toggle("show", !valid);
+        if (!valid) return;
+
+        if (hasPoints) endUserRate.value = customerAnnual.toFixed(4);
+        pointsEndUserRate.value = customerAnnual.toFixed(4);
+
+        var customerMonthlyRate = customerAnnual / 100 / 12;
+        var pmt = solvePayment(pv, futureValue, customerMonthlyRate, state.term, model);
+        var allInPresentValue = cashFlowPresentValue(pmt, futureValue, targetMonthlyRate, state.term, model);
+        var subsidy = hasSubsidy || hasPoints ? Math.max(0, pv - allInPresentValue) : 0;
+        var totalPaid = pmt * state.term;
+        var finance = totalPaid + futureValue - pv;
+        var span = model.defer + state.term - model.down;
+        var maturitySpan = lease ? model.defer + state.term : span;
+
+        if (hasSubsidy && !hasPoints) {
+          pointsPct.value = (subsidy / pv * 100).toFixed(4);
+          pointsValue = subsidy;
+        }
+        pointsAmount.value = pointsValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        state.futureValue = futureValue;
+        paymentEl.innerHTML = money(pmt) + " <span>/ payment</span>";
+        dueNowSummaryEl.hidden = model.down === 0;
+        dueNowEl.textContent = money(pmt * model.down);
+        dueNowLabelEl.textContent = model.label;
+        totalPaidEl.textContent = money(totalPaid);
+        financeEl.textContent = money(finance);
+        rateFactorEl.textContent = (pmt / pv).toFixed(6);
+        financeHelpEl.textContent = lease ? "payments + residual − principal" : "total paid − principal";
+        paymentCountEl.textContent = state.term + " total payments";
+        periodRateEl.textContent = pct(customerMonthlyRate * 100, 4) + " / month";
+        termValue.textContent = state.term + " months";
+        futureValueAssumptionEl.textContent = "FV = " + money(futureValue);
+        subsidyPct.value = (subsidy / pv * 100).toFixed(2);
+        subsidyAmount.value = subsidy.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (hasPoints) {
+          methodText.textContent = "Payments and the schedule use the " + pct(customerAnnual, 4) + " End User Rate; " + money(pointsValue) + " in points increases the present value to the financed amount at the " + pct(annual, 2) + " target yield. Points are not added to the amortization schedule.";
+          formulaEl.innerHTML = lease ? "PV = points + PMT × Σ(1 + r<sub>target</sub>/12)<sup>−t</sup> + FV × (1 + r<sub>target</sub>/12)<sup>−T</sup>" : "PV = points + PMT × Σ(1 + r<sub>target</sub>/12)<sup>−t</sup>";
+        } else if (hasSubsidy) {
+          methodText.textContent = "Payments and the schedule use the " + pct(customerAnnual, 2) + " End User Rate on the full principal; the " + money(subsidy) + " reduction makes the cash flows yield " + pct(annual, 2) + ".";
+          formulaEl.innerHTML = lease ? "PV − subsidy = PMT × Σ(1 + r<sub>target</sub>/12)<sup>−t</sup> + FV × (1 + r<sub>target</sub>/12)<sup>−T</sup>" : "PV − subsidy = PMT × Σ(1 + r<sub>target</sub>/12)<sup>−t</sup>";
+        } else {
+          methodText.textContent = "Annual rate " + pct(annual, 2) + " ÷ 12 = " + pct(customerMonthlyRate * 100, 4) + " monthly; future value is " + money(futureValue) + ".";
+          formulaEl.innerHTML = lease ? "PV = PMT × Σ(1 + r/12)<sup>−t</sup> + FV × (1 + r/12)<sup>−T</sup>" : "PV = PMT × Σ(1 + r/12)<sup>−t</sup>";
+        }
+
+        state.rows = buildSchedule(pv, futureValue, customerMonthlyRate, state.term, model, pmt, maturitySpan);
+        renderRows();
+      }
+
+      function updateContractFields() {
+        var lease = contractType.value === "lease";
+        residualField.hidden = !lease;
+        residual.disabled = !lease;
+      }
+
+      function updateAdjustmentFields() {
+        var subsidyActive = subsidized.checked;
+        var pointsActive = points.checked;
+        subsidySection.hidden = !subsidyActive;
+        pointsSection.hidden = !pointsActive;
+        endUserRate.disabled = !subsidyActive || pointsActive;
+        pointsPct.disabled = !pointsActive;
+        subsidized.setAttribute("aria-expanded", subsidyActive ? "true" : "false");
+        points.setAttribute("aria-expanded", pointsActive ? "true" : "false");
+      }
+
+      termButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+          state.term = Number(button.getAttribute("data-term"));
+          termButtons.forEach(function (candidate) { candidate.setAttribute("aria-pressed", candidate === button ? "true" : "false"); });
+          state.expanded = false;
+          calculate();
+        });
+      });
+
+      contractType.addEventListener("change", function () { updateContractFields(); state.expanded = false; calculate(); });
+      principal.addEventListener("input", calculate);
+      rate.addEventListener("input", function () {
+        if (subsidized.checked && !state.endUserRateEdited) endUserRate.value = rate.value;
+        calculate();
+      });
+      residual.addEventListener("input", calculate);
+      timing.addEventListener("change", function () { state.expanded = false; calculate(); });
+      subsidized.addEventListener("change", function () {
+        if (subsidized.checked && !points.checked && !state.endUserRateEdited) endUserRate.value = rate.value;
+        updateAdjustmentFields();
+        state.expanded = false;
+        calculate();
+      });
+      points.addEventListener("change", function () {
+        updateAdjustmentFields();
+        state.expanded = false;
+        calculate();
+      });
+      pointsPct.addEventListener("input", calculate);
+      endUserRate.addEventListener("input", function () { state.endUserRateEdited = true; calculate(); });
+      toggleRows.addEventListener("click", function () { state.expanded = !state.expanded; renderRows(); });
+
+      document.getElementById("downloadCsv").addEventListener("click", function () {
+        if (!state.rows.length) return;
+        var lines = [["Period", "Payment", "Interest", "Principal", "Balance"]];
+        state.rows.forEach(function (row) {
+          lines.push([row.label, row.payment.toFixed(2), row.interest.toFixed(2), row.principal.toFixed(2), row.balance.toFixed(2)]);
+        });
+        var csv = lines.map(function (line) {
+          return line.map(function (value) { return '"' + String(value).replace(/"/g, '""') + '"'; }).join(",");
+        }).join("\r\n");
+        var blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = url;
+        link.download = "financial-calculator-amortization.csv";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+      });
+
+      updateContractFields();
+      updateAdjustmentFields();
+      calculate();
+    })();
+  </script>
+</body>
+</html>
